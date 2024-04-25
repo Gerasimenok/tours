@@ -1,0 +1,1414 @@
+#include <iostream>
+#include <iomanip>
+#include <windows.h>
+#include <fstream>
+#include <string>
+#include <conio.h>
+#include <codecvt>
+
+using namespace std;
+
+struct User {
+    string username;
+    string password;
+};
+
+void usersFunctional(User& currentUserLogin, wstring**& lines, int& lineCount);
+void ShowUsers(int choice);
+void printFoundTours(wstring** lines, int lineCount, int& x, int& y, int ifcolor, int index);
+void DeleteChoosenTour();
+void printCentered(const string& text, int numLines, int x, int y);
+void Findtours(wstring**& lines, int& lineCount, int choice);
+void split(const wstring& input, wstring& storedCityOfDeparture, wstring& storedCountryOfArrival,wstring& storedResortCity, wstring& storedStartDate, wstring& storedEndDate, wstring& storedMaxCost);
+bool isDateInRange(wstring startDate, wstring storedStartDate, wstring storedEndDate);
+void FindToDeletIrrelevant();
+wstring splitEndDate(const wstring line);
+void Deleting(const wstring& lineToDelete, const string filename);
+wstring stringToWstring(const string& str);
+string wstringToString(const wstring& wstr);
+void DeleteChoosenUser(int role, string userlogin);
+void changeAccountData(const string filename, const string userlogin, const string userpassword, int field, User& currentUser);
+void addNewData(const string filename, string userloginandpassword);
+string getFieldsOfNewUser();
+void addNewTour(const string filename, wstring addedline);
+wstring getFieldsOfNewTour();
+void addFoundToursInArray(wstring**& lines, int& lineCount, const wstring& line);
+void shakerSort(wstring**& lines, int lineCount, int index, int cresing);
+void ifSort(wstring** lines, int lineCount, int& userchoice);
+void Exit(User& currentUser);
+void ShowTours(wstring**& lines, int& lineCount);
+void saveTour(string currentlogin, int choice, wstring**& lines, string filename);
+void showSavedTours(string userlogin, string filename);
+void editTours(wstring**& lines, int lineCount, string filename);
+void showUsersSavedTours(int& x, int& y, string filename);
+void deleteSavedTours(string username);
+void editSavedTours(string olduserlogin, string newuserlogin);
+
+bool isUsernameUnique(const string& filename, const string& username) {
+    ifstream infile(filename);
+    if (!infile.is_open()) {
+        cerr << "Ошибка открытия файла!" << endl;
+        exit(1);
+    }
+
+    string storedUsername, storedPassword;
+    while (infile >> storedUsername >> storedPassword) {
+        if (storedUsername == username) {
+            return false; 
+        }
+    }
+    return true;
+}
+
+// Функция проверки логина и пароля на содержание пробелов
+/*bool CorrectLogin(const string& login) {
+    size_t pos = login.find(" ");
+    if (pos != string::npos) {
+        cout << "Логин не может содержать пробелы. Введите еще раз: ";
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+*/
+
+bool registerUser(const string& filename, User& currentUserLogin) {//сделать центрирование текста
+    ofstream file(filename, ios::app);
+    if (!file.is_open()) {
+        cerr << "Ошибка открытия файла!" << endl;
+        exit(1);
+    }
+
+    printCentered("Введите логин: ", 1, 0, 0);
+    string username;
+    cin >> username;
+
+
+    while (!isUsernameUnique(filename, username)) {
+        printCentered( "Пользователь с таким логином уже существует. Пожалуйста, выберите другой логин.",1,0,0);
+        printCentered("Введите логин: ", 1, 0, 0);
+        cin >> username;
+    }
+
+    printCentered("Введите пароль: ", 1, 0, 0);
+    string password;
+    cin >> password;
+
+
+    file << username << " " << password << endl;
+    printCentered("Пользователь зарегистрирован. Теперь войдите в систему.", 1, 0, 0); 
+    Sleep(2000);
+    currentUserLogin.username = username;
+    currentUserLogin.password = password;
+    file.close();
+    return true;
+}
+
+bool loginUser(const string& filename, User& currentUserLogin) {
+    ifstream infile(filename);
+    if (!infile.is_open()) {
+        cerr << "Ошибка открытия файла!" << endl;
+        exit(1);
+    }
+
+    int attempts = 3;
+    bool found = false;
+
+    while (attempts > 0 && !found) {
+        string username, password;
+        printCentered("Введите логин: ",1,0,0);
+        cin >> username;
+        printCentered("Введите пароль: ",1,0,0);
+        cin >> password;
+
+        string storedUsername, storedPassword;
+
+        while (infile >> storedUsername >> storedPassword) {
+            if (storedUsername == username && storedPassword == password) {
+                found = true;
+                currentUserLogin.username = username; 
+                currentUserLogin.password = password;
+                break;
+            }
+        }
+
+        if (found) {
+            printCentered("Вы успешно вошли в систему.", 1,0, 0);
+            Sleep(700);
+            return true;
+        }
+        else {
+            attempts--;
+            if (attempts > 0) {
+                printCentered("Неправильный логин или пароль. Попробуйте еще раз.",1,0,0);
+                Sleep(2000);
+            }
+        }
+        infile.clear();
+        infile.seekg(0, ios::beg);
+    }
+
+    printCentered("Вы исчерпали все попытки входа в систему.", 1, 0, 0);
+    Sleep(700);
+    return false;
+}
+
+
+// Функция для входа администратора
+bool adminLogin(const string& adminPasswordFile) {
+    ifstream infile(adminPasswordFile);
+    if (!infile.is_open()) {
+        cerr << "Ошибка открытия файла!" << endl;
+        exit(1);
+    }
+
+    int attempts = 3;
+    bool found = false;
+
+    while (attempts > 0 && !found) {
+        string adminPassword;
+        printCentered("Введите пароль администратора: ", 1, 0,0);
+        cin >> adminPassword;
+
+        string storedPassword;
+        infile >> storedPassword;
+
+        if (adminPassword == storedPassword) {
+            printCentered("Вы успешно вошли как администратор.", 1, 0,0);
+            found = true;
+            Sleep(700);
+        }
+        else {
+            attempts--;
+            if (attempts > 0) {
+                printCentered("Неправильный пароль администратора. Попробуйте еще раз.", 1, 0,0);
+                Sleep(700);
+            }
+        }
+
+        infile.clear();
+        infile.seekg(0, ios::beg); // cброс в начало файла
+    }
+
+    if (attempts == 0) {
+        printCentered("Вы исчерпали все попытки входа в систему.", 1,0,0);
+    }
+    infile.close();
+    return found;
+}
+
+void printCentered(const string& text, int numLines, int x, int y)
+{
+    if (x == 0 && y == 0) {
+        system("cls");
+    }
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+
+    int consoleWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    int consoleHeight = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    int posY, posX;
+    int totalTextLines = numLines;
+    if (y == 0) {
+        posY = (consoleHeight - totalTextLines) / 2;
+    }
+    else {
+        posY = y + 2;
+    }
+
+    int startPos = 0;
+    for (int i = 0; i < totalTextLines; i++) {
+        string line;
+        int found = text.find('\n', startPos);
+        if (found != string::npos) {
+            line = text.substr(startPos, found - startPos);
+            startPos = found + 1;
+        }
+        else {
+            line = text.substr(startPos);
+        }
+        if (x == 0) {
+            if (i == 0) {
+                posX = (consoleWidth - line.length()) / 2;
+            }
+        }
+        else {
+            posX = x;
+        }
+
+        COORD cursorPos = { posX, posY + i };
+        SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cursorPos);
+        cout << line;
+    }
+}
+
+void isSave(User& currentUserlogin, wstring**& lines, int& lineCount) {
+    
+    int x = 0, y = 0, userchoice;
+    while (true) {
+        printCentered("НАЙДЕННЫЕ ТУРЫ\n", lineCount + 2, 0, 0);
+        printFoundTours(lines, lineCount, x, y, -1,-1);
+
+        printCentered("Введите номер тура, который хотите сохранить: ", 1, x, y);
+        cin >> userchoice;
+        if (userchoice > lineCount) {
+            printCentered("Тура под таким номером не существует. Выберете еще раз.", 1, 0, 0);
+            Sleep(5000);
+        }
+        else {
+            break;
+        }
+    }
+    saveTour(currentUserlogin.username, userchoice - 1, lines, "savedtour.txt");// в вызове отнимать 1 чтобы совпадала нумирация в спискке и в массиве
+
+    
+}
+
+
+void usersFunctional(User& currentUserlogin, wstring**& lines, int& lineCount) {
+    int x = 0, y = 0;
+
+    while (currentUserlogin.username != "" && currentUserlogin.password != "") {
+        printCentered("1.Найти тур\n2.Просмотреть сохраненные туры\n3.Изменить пароль\n4.Изменить логин\n5.Удалить учетную запись\n6.Выйти из учетной записи\nВыберите действие: ", 7, 0,0);
+        int userchoice;
+        wstring userchoicesort;
+        bool iscontinue = true;
+        cin >> userchoice;
+        switch (userchoice)
+        {
+        case 1:
+            lines = nullptr;
+            lineCount = 0;
+            Findtours(lines, lineCount, 1); // посл поиска сортировка, сохр выбранных  туров
+
+            if (lineCount == 0) {
+                printCentered("Туров с таким набором критериев нет", 1,0,0);
+            }
+            else {
+                printCentered("НАЙДЕННЫЕ ТУРЫ\n", lineCount + 2, 0,0);
+                printFoundTours(lines, lineCount, x,y, -1,-1);
+                cout << "\n\n\n";
+                system("pause");
+                while (iscontinue) {
+                    printCentered("Если желаете сохранить какой-то тур в своей учетной записи, то введите 1,\nесли же отсортировать, то - 2.\nЕсли необходимо вернуться в главное меню, то введите 0: ", 3,0,0);
+                    cin >> userchoice;
+                    switch (userchoice)
+                    {
+                    case 1:
+                        
+                        while (true) {
+                            printCentered("НАЙДЕННЫЕ ТУРЫ\n", lineCount + 2, 0, 0);
+                            x = 0, y = 0;
+                            printFoundTours(lines, lineCount, x, y, -1,-1);
+
+                            printCentered("Введите номер тура, который хотите сохранить: ", 1, x, y);
+                            cin >> userchoice;
+                            if (userchoice > lineCount) {
+                                printCentered("Тура под таким номером не существует. Выберете еще раз.", 1, 0, 0);
+                                Sleep(5000);
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                        saveTour(currentUserlogin.username, userchoice - 1, lines, "savedtour.txt");// в вызове отнимать 1 чтобы совпадала нумирация в спискке и в массиве
+                        cout << "\n\n\n";
+                        system("pause");
+                        break;
+                    case 2:
+                        while (true) {
+                            userchoice = 0;
+                            ifSort(lines, lineCount, userchoice);
+
+                            while (true) {
+                                printCentered("ОТСОРТИРОВАННЫЕ ТУРЫ\n", lineCount + 2, 0, 0);
+                                int x = 0, y = 0;
+                                printFoundTours(lines, lineCount, x, y, 1, userchoice+4); 
+                                printCentered("Желаете ли сохранить какой-нибудь тур (да/нет): ", 1, x, y);
+                                wcin >> userchoicesort;
+                                if (userchoicesort == L"да") {
+                                    while (true) {
+                                        printCentered("ОТСОРТИРОВАННЫЕ ТУРЫ\n", lineCount + 2, 0, 0);
+                                        x = 0, y = 0;
+                                        printFoundTours(lines, lineCount, x, y,1, userchoice+4);
+                                        printCentered("Введите номер тура, который хотите сохранить: ", 1, x, y);
+                                        cin >> userchoice;
+                                        if (userchoice > lineCount) {
+                                            printCentered("Тура под таким номером не существует. Выберете еще раз.", 1, 0, 0);
+                                            Sleep(5000);
+                                        }
+                                        else {
+                                            break;
+                                        }
+                                    }
+                                    saveTour(currentUserlogin.username, userchoice - 1, lines, "savedtour.txt");
+                                    Sleep(3000);
+                                }
+                                else if (userchoicesort != L"да" && userchoicesort != L"нет") {
+                                    printCentered("Введено неверно. Повторите действия.", 1, 0, 0);
+                                    Sleep(3000);
+                                }
+                                else if (userchoicesort != L"да") {
+                                    break;
+                                }
+                            }
+
+                            while (true) {
+                                printCentered("ОТСОРТИРОВАННЫЕ ТУРЫ\n", lineCount + 2, 0, 0);
+                                int x = 0, y = 0;
+                                printFoundTours(lines, lineCount, x, y, -1, -1);
+
+                                printCentered("Желаете ли произвести другую сортировку (да/нет): ", 1, x, y);
+                                wcin >> userchoicesort;
+                                if (userchoicesort != L"да" && userchoicesort != L"нет") {
+                                    printCentered("Введено неверно. Повторите действия.", 1, 0, 0);
+                                    Sleep(3000);
+                                }
+                                else {
+                                    break;
+                                }
+                            }
+
+                            if (userchoicesort == L"нет") {
+                                break;
+                            }
+                        }
+                        break;
+                    case 0:
+                        iscontinue = false;
+                        break;
+                    default:
+                        printCentered("Такого действия не существует. Выберете другое: ", 1, 0, 0);
+                        break;
+                    }
+                }
+            }
+            break;
+        case 2:
+            // просмотреть сохраненные туры
+            showSavedTours(currentUserlogin.username, "savedtour.txt");
+            break;
+        case 3:
+            //изменить пароль
+            changeAccountData("users.txt", currentUserlogin.username, currentUserlogin.password, 2, currentUserlogin);
+            break;
+        case 4:
+            //измеить логин
+            changeAccountData("users.txt", currentUserlogin.username, currentUserlogin.password, 1, currentUserlogin);
+            break;
+        case 5:
+            //удаление учетной записи
+            DeleteChoosenUser(1, currentUserlogin.username);
+            // ОЧИЩАТЬ ФАЙЛ СОХРАНЕННЫХ ТУРОВ!!!!!!!!!!!!!!!!
+            break;
+        case 6:
+            //выйти из учет записи
+            Exit(currentUserlogin);
+            break;
+        default:
+            //////////////
+            break;
+        }
+
+        Sleep(3000);
+
+        //мень пользователя(изменить пароль, изменить логин, найти туры, просмотреть сохраненные туры)
+    }
+};
+
+int main() {
+    setlocale(LC_ALL, "Ru");
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
+    printCentered("ДОБРО ПОЖАЛОВАТЬ В ПРОГРАММУ ПОДБОРА ТУРИСТИЧЕСКИХ ПУТЕВОК", 1, 0, 0);
+    Sleep(2500);
+
+    bool isExit = true;
+    int x = 0, y = 0;// потом убрать отсюда
+
+    while (isExit) {
+
+        string MAINMENUFORINTER = "1.Регистрация\n2.Вход\n3.Вход для администратора\n4.Выйти\nВыберите действие: ";
+        printCentered(MAINMENUFORINTER, 5, 0, 0);
+
+        User currentUserlogin;
+        bool entered = false;
+        int choice;
+
+        wstring** lines = nullptr;
+        int lineCount = 0;
+
+        cin >> choice;
+        system("cls");
+        switch (choice) {
+        case 1:
+            registerUser("users.txt", currentUserlogin);
+        case 2:
+            entered = loginUser("users.txt", currentUserlogin);
+            break;
+        case 3:
+            entered = adminLogin("admin.txt");
+            break;
+        case 4:
+            printCentered("ДО СВИДАНИЯ!", 1, 0, 0);
+            isExit = false;
+            break;
+        default:
+            printCentered("Неправильный выбор. Попробуйте вновь.", 1, 0, 0);
+            break;
+        }
+
+        if (!entered) {
+            exit(0);
+        }
+
+        if (choice == 1 || choice == 2) {
+            usersFunctional(currentUserlogin, lines, lineCount);
+        }
+        else if (choice == 3) {
+            //меню админа (измениь пароль, просмотреть пользователей, просмотреть созраненные туры пользователя, )
+            printCentered("1.Редактировать туры\n2.Удалить туры\n3.Добавить туры\n4.Найти туры\n5.Просмотреть пользователей\n6.Удалить пользователz\n7.Добавить пользователя\n8.Просмотрерть сохраненные пользователем туры\n9.Просмотреть все туры\nВыберите действие: ", 10, 0, 0);
+            int adminchoice;
+            cin >> adminchoice;
+
+            switch (adminchoice) {
+            case 1:
+                //редактировать туры
+                editTours(lines, lineCount, "toursmain1.txt");
+                break;
+            case 2:
+                printCentered("1.Удалить неактуальные туры\n2.Удалить выбранный тур\nВыберите действие: ", 3, 0, 0);
+                int deletechoice;
+                cin >> deletechoice;
+                switch (deletechoice)
+                {
+                case 1:
+                    // метод ввод сегодняшней даты и удаление строк изфайла
+                    FindToDeletIrrelevant();
+                    break;
+                case 2:
+                    DeleteChoosenTour();
+                    //ввести номер найденного удалчемого тура можно выбрать один или написать диапазон
+                    break;
+                default:
+                    printCentered("Неправильный выбор", 1, 0, 0);
+                    break;
+                }
+                break;
+            case 3:
+                //добавить тур
+                addNewTour("toursmain1.txt", getFieldsOfNewTour());
+                break;
+            case 4:
+                // найти тур
+                Findtours(lines, lineCount, 1);
+                break;
+            case 5:
+                // показать польз
+                ShowUsers(0);
+                break;
+            case 6:
+                // удалить польз
+                DeleteChoosenUser(0, currentUserlogin.username);
+                break;
+            case 7:
+                // добавить польз
+                addNewData("users.txt", getFieldsOfNewUser());
+                break;
+            case 8:
+                // показать сохраненнве тур
+                showUsersSavedTours(x, y, "savedtour.txt");
+                break;
+            case 9:
+                // все туры
+                ShowTours(lines, lineCount);
+                break;
+            default:
+
+                break;
+            }
+
+
+        }
+    }
+}
+
+void deleteSavedTours( string username) {
+    wifstream file("savedtour.txt", ios::app);
+    file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
+    wstring line;
+    while (getline(file, line)) {
+        wstring login = line.substr(0, line.find(L":"));
+        if (line.substr(0, line.find(L":")) == stringToWstring(username)) {
+            Deleting(line, "savedtour.txt");
+        }
+    }
+
+}
+
+void showUsersSavedTours(int &x, int&y, string filename) {
+    int count = 0;
+    wstring line, savedtours =L"";
+    string username, skip="";
+    wifstream file(filename, ios::app);
+    file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
+    ShowUsers(1);
+    cin >> username;
+    while (getline(file, line)) {
+        if (line.substr(0, line.find(L":")) == stringToWstring(username)) {
+            count++;
+            savedtours += line.substr(line.find(L":") + 2, line.size()- line.find(L":")) + L"\n";
+        }
+    }
+   
+    for (int i = 0; i < count; i++) {
+        skip += "\n";
+    }
+    if (count == 0) {
+        printCentered("У пользователя "+ username +" нет сохраненных туров", 1, 0, 0);
+    }
+    else {
+
+        printCentered("СОХРАНЕННЫЕ ТУРЫ ПОЛЬЗОВАТЕЛЯ " + username + skip, count + 1, 0, 0);
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+        int consoleWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+        int consoleHeight = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+        int posY = (consoleHeight - count) / 2;
+        int posX = (consoleWidth - (savedtours.substr(0, savedtours.find(L"\n"))).length() - 3) / 2;
+        for (int i = 0; i < count; ++i) {
+            HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+            COORD cursorPos = { posX, posY + i };
+            SetConsoleCursorPosition(consoleHandle, cursorPos);
+            cout << i + 1 << ". ";
+            wcout << savedtours.substr(0, savedtours.find(L"\n"));
+            savedtours = savedtours.erase(0, savedtours.find(L"\n") + 1);
+        }
+    }
+    cout << "\n\n\n";
+    system("pause");
+
+}
+
+void ShowTours(wstring**& lines, int& lineCount) {
+    Findtours(lines, lineCount, 0);
+    string skip;
+    for (int i = 0; i < lineCount; i++) {
+        skip += "\n";
+    }
+    printCentered("ВСЕ ТУРЫ, ИМЕЮЩИЕСЯ В СИСТЕМЕ" + skip, lineCount + 2, 0, 0);
+    int x = 0, y = 0;
+    printFoundTours(lines, lineCount, x, y, -1,-1);
+
+}
+
+void saveTour(string currentlogin, int choice, wstring**& lines, string filename) {
+    wofstream file(filename, ios::app);
+    file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
+    if (!file.is_open()) {
+        wcerr << "Ошибка открытия файла!" << endl;
+        exit(1);
+    }
+    else {
+        wstring string;
+        for (int i = 0; i < 15; i++) {
+            string += lines[choice][i] + L" ";
+        }
+        file << stringToWstring(currentlogin) << L": " << string + L"\n";
+        printCentered("Тур успешно сохранен.", 1, 0, 0);
+    }
+}
+
+void showSavedTours(string userlogin, string filename) {
+    wifstream file(filename, ios::app);
+    file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
+    wstring line, savedtours;
+    string skip="";
+    int count = 0;
+    while (getline(file, line)) {
+        if (line.substr(0, line.find(L":", 0)) == stringToWstring(userlogin)) {
+            count++;
+            //skip += "\n";
+            savedtours += line.substr(line.find(L":", 0) + 2, line.length() - line.find(L":", 0)) + L"\n";
+        }
+    }
+
+    if (count == 0) {
+        printCentered("У вас нет сохраненных туров", 1, 0, 0);
+    }
+    else {
+        printCentered("ВАШИ СОХРАНЕННЫЕ ТУРЫ", count, 0, 0);
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+        int consoleWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+        int consoleHeight = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+        int posY = 1+ (consoleHeight - count ) / 2;
+        int posX = (consoleWidth - (savedtours.substr(0, savedtours.find(L"\n"))).length() - 3) / 2;
+        for (int i = 0; i < count; ++i) {
+            HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+            COORD cursorPos = { posX, posY + i };
+            SetConsoleCursorPosition(consoleHandle, cursorPos);
+            cout << i + 1 << ". ";
+            wcout << savedtours.substr(0, savedtours.find(L"\n"));
+            savedtours = savedtours.erase(0, savedtours.find(L"\n") + 1);
+        }
+    }
+    cout << "\n\n\n";
+    system("pause");
+}
+
+void Exit(User& currentUser) {
+    string choice = "да";
+    while (choice=="да")
+    {
+        printCentered("Вы уверены что желаете выйти из системы (да/нет): ", 1, 0, 0);
+        cin >> choice;
+        if (choice == "да") {
+            currentUser.username = "";
+            currentUser.password = "";
+            printCentered("Вы вышли из учетной записи.", 1, 0, 0);
+            break;
+        }
+        else if (choice != "да" && choice != "нет") {
+            printCentered("Такого выбора не существует. Желаете повторить действие (да/нет):  ", 1, 0, 0);
+            cin >> choice;
+        } 
+    }
+    Sleep(2000);
+}
+
+void ShowUsers(int choice) {
+    system("cls");
+    ifstream file("users.txt");
+    if (!file.is_open()) {
+        cout << "Файл не открыт";
+    }
+    int count = 1;
+    string line, stingofusers= "ПОЛЬЗОВАТЕЛИ, ИМЕЮЩИЕСЯ В СИСТЕМЕ:\n";
+    while (getline(file, line)) {
+
+        stingofusers += to_string(count) + ". " + line.substr(0, line.find(' ')) + "\n";
+        count++;
+    }
+
+    if (choice == 1) {
+        stingofusers += "\n\nВведите номер пользователя, сохраненные туры которого вы хотите просмотреть: ";
+    }
+    printCentered(stingofusers, count +3, 0, 0);
+    
+}
+
+bool isDateInRange(wstring startDate, wstring storedStartDate, wstring storedEndDate) {
+    if (startDate != L"любое") {
+        storedStartDate = storedStartDate.substr(6, 4) + storedStartDate.substr(3, 2) + storedStartDate.substr(0, 2);
+        startDate = startDate.substr(6, 4) + startDate.substr(3, 2) + startDate.substr(0, 2);
+        storedEndDate = storedEndDate.substr(6, 4) + storedEndDate.substr(3, 2) + storedEndDate.substr(0, 2);
+        return (startDate >= storedStartDate && startDate <= storedEndDate);
+    }
+    else {
+        return L" ";
+    }
+}
+
+void split(const wstring& input, wstring& storedCityOfDeparture, wstring& storedCountryOfArrival,
+    wstring& storedResortCity, wstring& storedStartDate, wstring& storedEndDate, wstring& storedMaxCost) {
+
+    int currentIndex = 0;
+    for (int i = 0; i < 6; ++i) {
+        wstring substring;
+
+        int nextIndex = input.find(L'/', currentIndex);
+
+        if (nextIndex != -1) {
+            substring = input.substr(currentIndex, nextIndex - currentIndex);
+            currentIndex = nextIndex + 1;
+        }
+        else {
+            substring = input.substr(currentIndex);
+        }
+
+        switch (i) {
+        case 0:
+            storedCityOfDeparture = substring;
+            break;
+        case 1:
+            storedCountryOfArrival = substring;
+            break;
+        case 2:
+            storedResortCity = substring;
+            break;
+        case 3:
+            storedStartDate = substring;
+            break;
+        case 4:
+            storedEndDate = substring;
+            break;
+        case 5:
+            storedMaxCost = substring;
+            break;
+        default:
+            break;
+        }
+    }
+
+}
+
+void getSearchCriteria(wstring& departureCity, wstring& arrivalCountry, wstring& resortCity, wstring& startDate, wstring& maxPrice) {
+    printCentered("Город отправления (или введите 'любое', если этот критерий поиска не важен): ", 1, 0, 0);
+    wcin >> departureCity;
+    printCentered("Страна прибытия (или введите 'любое', если этот критерий поиска не важен): ", 1, 0, 0);
+    wcin >> arrivalCountry;
+    printCentered("Курортный город (или введите 'любое', если этот критерий поиска не важен): ", 1, 0, 0);
+    wcin >> resortCity;
+    printCentered("Дата отправления (или введите 'любое', если этот критерий поиска не важен): ", 1, 0, 0);
+    wcin >> startDate;
+    printCentered("Цена (или введите 'любое', если этот критерий поиска не важен): ", 1, 0, 0);
+    wcin >> maxPrice;
+}
+
+bool isTourMatchingCriteria(wstring& departureCity, wstring& arrivalCountry, wstring& resortCity, wstring& startDate, wstring& maxPrice, wstring& line) {
+    wstring storedCityOfDeparture, storedCountryOfArrival, storedResortCity, storedStartDate, storedEndDate, storedMaxCost;
+    split(line, storedCityOfDeparture, storedCountryOfArrival, storedResortCity, storedStartDate, storedEndDate, storedMaxCost);
+    return ((departureCity == storedCityOfDeparture || departureCity == L"любое") &&
+        (arrivalCountry == storedCountryOfArrival || arrivalCountry == L"любое") &&
+        (resortCity == storedResortCity || resortCity == L"любое") &&
+        (isDateInRange(startDate, storedStartDate, storedEndDate) || startDate == L"любое") &&
+        (maxPrice == L"любое" || (stoi(maxPrice) >= stoi(storedMaxCost))));
+}
+
+void printFoundTours(wstring** lines, int lineCount, int& x, int& y, int ifcolor, int index) {
+
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+
+    int consoleWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    int consoleHeight = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    y = (consoleHeight - lineCount) / 2;
+    int linelenght=0;
+    for (int i = 0; i < 15; i++) {
+        linelenght += lines[0][i].length();
+    }
+    x = (consoleWidth - linelenght-17) / 2;
+
+    for (int i = 0; i < lineCount; ++i) {
+        HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+        COORD cursorPos = { x, y };
+        SetConsoleCursorPosition(consoleHandle, cursorPos);
+        cout << i+1 << ". ";
+        for (int j = 0; lines[i][j] != L""; ++j) {
+            if (ifcolor == 1 && index == j) {
+                SetConsoleTextAttribute(consoleHandle, FOREGROUND_RED);
+            }
+            wcout << lines[i][j] << " ";
+            if (ifcolor == 1 && index == j) {
+                SetConsoleTextAttribute(consoleHandle, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE); // Возвращаем обычный цвет текста
+            }
+        }
+        y++;
+    }
+}
+
+void ifSort(wstring** lines, int lineCount, int& userchoice){
+
+    string userchoicesort; 
+    int cresing;
+
+    system("cls");
+    while (true) {
+        printCentered("Отсортировать можно по:\n1. Цене поездки\n2. Количеству ночей в туре\n3. По названию отеля\n4. Рейтингу отеля\n5. Типу питания\n6. Линии пляжа\n7. Типу берега\n8. Наличию трансфера\n9. Наличию визы\n10.Типу перемещению\nВыбрете критерий для сортировки: ", 12, 0, 0);
+        cin >> userchoice;
+        if (userchoice > 10 || userchoice < 0) {
+            printCentered("Такого критерия для сортировки нет. Повторите действие", 1, 0, 0);
+            Sleep(2000);
+        }
+        else {
+            while (true) {
+                if (userchoice == 3) {
+                    printCentered("Название отлей можно отсортировать от:\n1. А до Я\n2. Я до А\nВыберете действие:", 4, 0, 0);
+                    // написать сортировку 
+                }
+                else if (userchoice == 5) {
+                    printCentered("Тип питания можно отсортировать следующим образом:\n1. без питания | завтрак | полупансион | полный пансион | все включено | ультра все включен \n2. ультра все включено |  все включено | полный пансион | полупансион | завтрак | без питания\nВыберете действие:", 4, 0, 0);
+                    // написать сортировку !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                }
+                else if (userchoice == 7) {
+                    printCentered("Тип берега можно отсортировать как:\n1. галька | каменистый | песчаный | собственный\n2. собственный | песчаный | каменистый | галька\nВыберете действие:", 4, 0, 0);
+                }
+                else if (userchoice == 8) {
+                    printCentered("Введите 1, если хотите, чтоб сначала были отображены туры, предоставляющие трансфер\n2 - если сначала должны быть показаны туры, не предоставляющие трансфер \nВыберете действие:", 3, 0, 0);
+                }
+                else if (userchoice == 9) {
+                    printCentered("По наличию визы туры могут быть отсортированы как:\n1. не нужна | нужна | по прилету \n2. по прилету | нужна | не нужна\nВыберете действие:", 4, 0, 0);
+                }
+                else if (userchoice == 10) {
+                    printCentered("Пока не написано", 1, 0, 0);
+                    // дописать!!!!!!!!!!!!!!!!!!!
+                }
+                else {
+                    printCentered("Вы хотите отсортировать по убыванию или по возрастанию.\nВведите 1, если по убыванию, 2 - по возрастанию: ", 2, 0, 0);
+                }
+                cin >> cresing;
+                if (cresing != 1 && cresing != 2) {
+                    printCentered("Такого варианта нет. Произведите действия еще рвз: ", 1, 0, 0);
+                    Sleep(2000);
+                }
+                else {
+                    break;
+                }
+            }
+            shakerSort(lines, lineCount, userchoice + 4, cresing);
+            system("cls");
+            break;
+        }
+    }
+    
+}
+
+void shakerSort(wstring**& lines, int lineCount, int index, int cresing) {
+    bool swapped = true;
+    int start = 0;
+    int end = lineCount - 1;
+    while (swapped) {
+        swapped = false;
+
+        for (int i = start; i < end; ++i) {
+            switch (cresing)
+            {
+            case 1:
+                if (lines[i][index] > lines[i + 1][index]) {
+                    swap(lines[i], lines[i + 1]);
+                }
+                break;
+            case 2:
+                if (lines[i][index] < lines[i + 1][index]) {
+                    swap(lines[i], lines[i + 1]);
+                }
+                break;
+            }
+            swapped = true;
+        }
+
+        if (!swapped) {
+            break;
+        };
+
+        swapped = false;
+        --end;
+
+        for (int i = end - 1; i >= start; --i) {
+            switch (cresing)
+            {
+            case 1:
+                if (lines[i][index] > lines[i + 1][index]) {
+                    swap(lines[i], lines[i + 1]);
+                }
+                break;
+            case 2:
+                if (lines[i][index] < lines[i + 1][index]) {
+                    swap(lines[i], lines[i + 1]);
+                }
+                break;
+            }
+            swapped = true;
+        }
+        ++start;
+    }
+}
+
+
+void Findtours(wstring**& lines, int& lineCount, int choice) {
+    system("cls");
+    wifstream file("toursmain1.txt");
+    file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
+    wstring departureCity, arrivalCountry, resortCity, startDate, maxPrice;
+    if (choice == 1) {
+        getSearchCriteria(departureCity, arrivalCountry, resortCity, startDate, maxPrice);
+    }
+    else {
+        departureCity = L"любое";
+        arrivalCountry = L"любое";
+        resortCity = L"любое";
+        startDate = L"любое";
+        maxPrice = L"любое";
+    }
+
+    wstring line;
+    while (getline(file, line)) {
+        if (isTourMatchingCriteria(departureCity, arrivalCountry, resortCity, startDate, maxPrice, line)) {
+            addFoundToursInArray(lines, lineCount, line);
+
+        }
+    }
+
+    file.close();
+}
+
+
+void addFoundToursInArray(wstring**& lines, int& lineCount, const wstring& line) {
+    if (!line.empty()) {
+        wstring tempLine = line; 
+        wstring* substrings = new wstring[line.size()];
+        int substringCount = 0;
+        size_t pos = 0;
+        while ((pos = tempLine.find(L"/")) != wstring::npos) {
+            substrings[substringCount++] = tempLine.substr(0, pos);
+            tempLine.erase(0, pos + 1);
+        }
+        substrings[substringCount++] = tempLine;
+        wstring** temp = new wstring * [lineCount + 1];
+        copy(lines, lines + lineCount, temp);
+        delete[] lines;
+        lines = temp;
+        lines[lineCount++] = substrings;
+    }
+
+}
+
+
+void FindToDeletIrrelevant() {
+    wifstream file("toursmain1.txt");
+    file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
+    printCentered("Введите сегодняшнюю дату (в формате дд-мм-гггг): ", 1, 0, 0);
+    wstring today, line, storedEndDate;
+    wcin >> today;
+    today = today.substr(6, 4) + today.substr(3, 2) + today.substr(0, 2);
+    int count = 0;
+    while (getline(file, line)) {
+        storedEndDate = splitEndDate(line);
+        if (storedEndDate == L"") {
+            printCentered("Хранимая дата окончания тура не получена", 1, 0, 0);
+        } else
+        if (storedEndDate <= today)
+        {
+            Deleting(line, "toursmain1.txt");
+            count++;
+        } 
+    }
+    if (count == 0) {
+        printCentered("Нет неактуальных", 1, 0, 0);
+    }
+    else {
+        printCentered("Успешно удалено " + to_string(count) + " туров", 1, 0, 0);
+    }
+
+}
+
+wstring splitEndDate(const wstring line) {
+    int count = 0, startPos = 0, endPos = 0;
+
+    for (int i = 0; i < line.length(); ++i) {
+        if (line[i] == L'/') {
+            count++;
+            if (count == 4) {
+                startPos = i + 1;
+                break;
+            }
+        }
+    }
+
+    if (count == 0) {
+        return L"";
+    }
+    else {
+        return (line.substr(startPos, 10)).substr(6, 4) + (line.substr(startPos, 10)).substr(3, 2) + (line.substr(startPos, 10)).substr(0, 2);
+    }
+}
+
+void DeleteChoosenUser(int role, string userlogin) {
+    system("cls");
+    wifstream file("users.txt");
+    wstring login, line;
+    if (role == 0) {
+        printCentered("Введите логин пользователя, которого желаете удалить: ", 1, 0, 0);
+        wcin >> login;
+        if (!isUsernameUnique("users.txt", wstringToString(login)))
+        {
+            while (getline(file, line)) {
+                if (login == line.substr(0, line.find(' '))) {
+                    Deleting(line, "users.txt");
+                    printCentered("Пользователь " + wstringToString(login) + " успешно удален", 1, 0, 0); //переделать так "Пользователь" + login + "успешно удален"
+                    Sleep(2000);
+                }
+            }
+        }
+        else {
+            printCentered("Пользователя " + wstringToString(login)+ " нет в системе", 1, 0, 0); //переделать так "Пользователь" + login + "успешно удален"
+            Sleep(2000);
+        }
+    }
+    else {
+        printCentered("Вы уверены, что желаете удалить учетную запись (да/нет): ", 1, 0, 0);
+        wstring choice;
+        wcin >> choice;
+        while (true) {
+            if (choice == L"да") {
+                while (getline(file, line)) {
+                    if ((stringToWstring(userlogin)) == line.substr(0, line.find(' '))) {
+                        Deleting(line, "users.txt");
+                        printCentered("Пользователь успешно удален", 1, 0, 0); //переделать так "Пользователь" + login + "успешно удален"
+                        Sleep(2000);
+                    }
+                }
+
+            }
+            else if (choice == L"нет") {
+                break;
+            }
+            else if (choice != L"да" && choice != L"нет") {
+                printCentered("Такого варианта нет. Повторите попытку", 1, 0, 0);
+                Sleep(3000);
+                printCentered("Вы уверены, что желаете удалить учетную запись (да/нет): ", 1, 0, 0);
+                wcin >> choice;
+            }
+        }
+    }
+    deleteSavedTours(wstringToString(login));
+}
+
+wstring stringToWstring(const string& str) {
+    wstring_convert<codecvt_utf8_utf16<wchar_t>> converter;
+    return converter.from_bytes(str);
+}
+
+string wstringToString(const wstring& wstr) {
+    wstring_convert<codecvt_utf8_utf16<wchar_t>> converter;
+    return converter.to_bytes(wstr);
+}
+
+void DeleteChoosenTour() {
+    system("cls");
+    wifstream file("toursmain1.txt");
+    file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
+    wstring departureCity, arrivalCountry, resortCity, startDate, maxPrice, line;
+    getSearchCriteria(departureCity, arrivalCountry, resortCity, startDate, maxPrice);
+    int count = 0;
+    while (getline(file, line)) {
+        if (isTourMatchingCriteria(departureCity, arrivalCountry, resortCity, startDate, maxPrice, line)) {
+            Deleting(line, "toursmain1.txt");
+            count++;
+        }
+    }
+
+    printCentered("Успешно удалено " + to_string(count) + " туров", 1, 0, 0);
+    file.close();
+}
+
+void Deleting(const wstring& lineToDelete, const string filename) {
+    wifstream fileIn(filename);
+    fileIn.imbue(locale(fileIn.getloc(), new codecvt_utf8<wchar_t>));
+    if (!fileIn.is_open()) {
+        cerr << L"Ошибка открытия файла" << endl;
+        return;
+    }
+
+    wstring line;
+    wstring fileContent;
+    while (getline(fileIn, line)) {
+        if (line != lineToDelete) {
+            fileContent += line + L"\n";
+        }
+    }
+    fileIn.close();
+
+    wofstream fileOut(filename);
+    fileOut.imbue(locale(fileOut.getloc(), new codecvt_utf8<wchar_t>));
+    if (!fileOut.is_open()) {
+        cerr << L"Ошибка открытия файла для записи" << endl;
+        return;
+    }
+
+    fileOut << fileContent;
+    fileOut.close();
+}
+
+void changeAccountData(const string filename, const string userlogin, const string userpassword, int field, User& currentUser) {// field = 1 изменение логина field = 2 изменение пароля 
+    system("cls");
+    ifstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Ошибка открытия файла!" << endl;
+        exit(1);
+    }
+    else {
+        string newfield, line;
+        if (field == 1) {
+            printCentered("Введите новый логин: ", 1, 0, 0);
+            cin >> newfield;
+            while (getline(file, line)) {
+                if (line == userlogin + " " + userpassword) {
+                    Deleting(stringToWstring(line), filename);
+                }
+            }
+
+            while (!isUsernameUnique(filename, newfield)) {
+                printCentered("Пользователь с таким логином уже существует. Пожалуйста, выберите другой логин.", 1, 0, 0);
+                Sleep(2000);
+                printCentered("Введите новый логин: ", 1, 0, 0);
+                cin >> newfield;
+            }
+
+            //функция добавления нового пользователя которая у админа. передать новый логин и пароль из структуры userpassword
+            addNewData("users.txt", (newfield + " " + currentUser.password));
+            currentUser.username = newfield;
+            printCentered("Ваши данные успешно изменены.", 1, 0, 0);
+            editSavedTours(userlogin, newfield);
+        }
+        else { // зациклить до трях попыток пока два пароля не будут одинаковыми
+            while (true) {
+                printCentered("Введите новый пароль: ", 1, 0, 0);
+                cin >> newfield;
+                while (getline(file, line)) {
+                    if (line == userlogin + " " + userpassword) {
+                        Deleting(stringToWstring(line), filename);
+                    }
+                }
+
+                string password;
+                printCentered("Введите повторно новый пароль: ", 1, 0, 0);
+                cin >> password;
+
+                if (password == newfield) {
+                    //функция добавления нового пользователя которая у админа. передать логин из структуры userlogin и новый пароль
+                    addNewData("users.txt", (currentUser.username + " " + newfield));
+                    currentUser.password = newfield;
+                    printCentered("Ваши данные успешно изменены.", 1, 0, 0);
+                    break;
+                }
+                else {
+                    printCentered("Пароли отличаются. Попробуйте еще раз.", 1, 0, 0);
+                    Sleep(2000);
+                }
+            }
+        }
+    }
+}
+
+void editSavedTours(string olduserlogin, string newuserlogin) {
+    wifstream file("savedtour.txt");
+    file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
+    wstring line, linesofsavedtours;
+    while (getline(file, line)) {
+        if (line.substr(0, line.find(L":")) == stringToWstring(olduserlogin)) {
+            linesofsavedtours += stringToWstring(newuserlogin) + line.substr(line.find(L":"), line.length() - line.find(L":"))+L"\n";
+            Deleting(line, "savedtour.txt");
+        }
+    }
+    addNewTour("savedtour.txt", linesofsavedtours);
+}
+
+
+void editTours(wstring**& lines, int lineCount, string filename) {
+    ShowTours(lines, lineCount);
+    cout << endl;
+    system("pause");
+    printCentered("Введите номер тура, кoторый хотите отредактировать: ", 1, 0, 0);
+    int choice, count = 0, pos = 0, endpos = 0, startpos=0;
+    cin >> choice;
+    while (choice > lineCount || choice <=0) {
+        printCentered("Тура с таким номером не существует. Введите корректно: ", 1, 0, 0);
+        cin >> choice;
+    }
+    wstring editedtour, line, newfield;
+    for (int i = 0;i < 15; i++) {
+        editedtour += lines[choice-1][i] + L"/";
+    }
+    wifstream file(filename);
+    file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
+    while (getline(file, line)) {
+        if (line == editedtour) {
+            printCentered("ПОЛЯ ДЛЯ РЕДАКТИРОВАНИЯ\n1. Город отправления\n2. Срана прибытия\n3. Курортный город\n4. Начало продаж тура\n5. Окончание продаж тура\n6. Цена\n7. Количестро ночей\n8. Название отеля\n9. Рейтинг отеля\n10. Тип питания\n11. Линия пляжа\n12. Тип пляжа\n13. Наличие трансфера\n14. Необходимость визы\n15. Тип перемещения\nВыберите изменяемое поле: ", 17, 0, 0);
+            cin >> choice;
+            printCentered("Введите новую инфломацию о туре: ", 1, 0, 0);
+            getline(wcin, newfield);
+            getline(wcin, newfield);
+            for (int i = 0; i < line.length(); ++i) {
+                pos++;
+                if (line[i] == L'/') {
+                    count++;
+                    if (count == choice) {
+                        startpos = pos;
+                    }
+                    if (count == choice + 1) {
+                        endpos = pos;
+                        break;
+                    }
+                }
+            }
+
+        }
+    }
+
+    Deleting(editedtour, "toursmain1.txt");
+    addNewTour(filename, editedtour.substr(0, startpos) + newfield + editedtour.substr(endpos - 1, editedtour.length() - startpos));
+    printCentered("Тур успешно изменен.", 1, 0, 0);
+}
+
+string getFieldsOfNewUser() {
+    string loginofnewuser, passwordofnewuser;
+    printCentered("Введите логин добавляемого пользователя: ", 1, 0, 0);
+    cin >> loginofnewuser;
+    while (!isUsernameUnique("users.txt", loginofnewuser)) {
+        printCentered("Пользователь с таким логином уже существует. Пожалуйста, выберите другой логин.\nВведите логин добавляемого пользователя: ", 1, 0, 0);
+        cin >> loginofnewuser;
+    }
+    printCentered("Введите пароль добавляемого пользователя: ", 1, 0, 0);
+    cin >> passwordofnewuser;
+    return (loginofnewuser + " " + passwordofnewuser);
+}
+
+void addNewData(const string filename, string addedline) {
+    ofstream file(filename, ios::app);
+
+    if (!file.is_open()) {
+        cerr << "Ошибка открытия файла!" << endl;
+        exit(1);
+    }
+    else {
+        file << addedline << endl;
+    }
+}
+
+
+void addNewTour(const string filename, wstring addedline) {
+    wofstream file(filename, ios::app);
+    file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
+    if (!file.is_open()) {
+        wcerr << "Ошибка открытия файла!" << endl;
+        exit(1);
+    }
+    else {
+        file << addedline;
+    }
+}
+
+wstring getFieldsOfNewTour() {
+    wstring data, input;
+    string choicecontinue = "да", choiceadd;
+    int countofadd = 0;
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+
+    int consoleWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    int consoleHeight = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    while (choicecontinue == "да") {
+        for (int i = 1; i < 16; i++) {
+            switch (i)
+            {
+            case 1:
+                getline(wcin, data);
+                printCentered("Введите город отправления: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 2:
+                printCentered("Введите страну прибытия: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 3:
+                printCentered("Введите курортный город: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 4:
+                printCentered("Введите дату первого отправления: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 5:
+                printCentered("Введите дату последнего отправления: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 6:
+                printCentered("Введите цену: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 7:
+                printCentered("Введите количество ночей: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 8:
+                printCentered("Введите название отеля: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 9:
+                printCentered("Введите рейтинг отеля: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 10:
+                printCentered("Введите тип питания: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 11:
+                printCentered("Введите линию пляжа: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 12:
+                printCentered("Введите тип берега: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 13:
+                printCentered("Введите наличие трансфера: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 14:
+                printCentered("Введите необходимость в наличии визы: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            case 15:
+                printCentered("Введите тип перемещения: ", 1, 0, 0);
+                getline(wcin, data);
+                break;
+            default:
+                break;
+            }
+            input += data + L"/";
+        }
+
+        wstring test = input + L"\n";
+        system("cls");
+
+
+        int posY = (consoleHeight - countofadd + 1) / 2;
+        int posX = 0;
+        for (int i = 0; i <= countofadd; i++) {
+            posX = (consoleWidth - (test.substr(0, test.find(L'\n'))).length()) / 2;
+            COORD cursorPos = { posX, posY };
+            SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cursorPos);
+
+            wcout << test.substr(0, test.find(L'\n'));
+            test = test.substr(test.find(L'\n') + 1);
+            posY++;
+            if (i == countofadd) {
+                
+                const string d = "Вы уверены, что хотите добавить последний введенный тур (да/нет): ";
+                posX = (consoleWidth - d.length()) / 2;
+                COORD cursorPos = { posX, posY };
+                SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cursorPos);
+                cout << d;
+            }  
+        }
+
+        cin >> choiceadd;
+        printCentered("Желаете добавить еще (да/нет): ", 1, 0, 0);
+        cin >> choicecontinue;
+        
+        if (choiceadd == "нет" && choicecontinue == "нет") {
+            input= L"";
+            break;
+        }
+        else if (choiceadd == "нет" && choicecontinue == "да") {
+            if (countofadd == 0) {
+                input = L"";
+            }
+            else {
+                input = input.substr(0, input.find_last_of(L"\n")+1);
+            }
+            
+        } if (choiceadd == "да" && choicecontinue == "да") {
+            input += L"\n";
+            countofadd++;
+        }
+    
+    }
+    return L"\n"+input;
+}
+
