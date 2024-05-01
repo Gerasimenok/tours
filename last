@@ -836,15 +836,23 @@ void getSearchCriteria(wstring& departureCity, wstring& arrivalCountry, wstring&
     getline(wcin, departureCity);
     printCentered("Город отправления (или нажмите Enter, если этот критерий поиска не важен): ", 1, 0, 0);
     getline(wcin, departureCity);
+    for (int i = 0; i < departureCity.length(); i++) {
+        departureCity[i]= tolower(departureCity[i], locale());
+    }
     printCentered("Страна прибытия (или нажмите Enter, если этот критерий поиска не важен): ", 1, 0, 0);
     getline(wcin, arrivalCountry);
+    for (int i = 0; i < arrivalCountry.length(); i++) {
+        arrivalCountry[i] = tolower(arrivalCountry[i], locale());
+    }
     printCentered("Курортный город (или нажмите Enter, если этот критерий поиска не важен): ", 1, 0, 0);
     getline(wcin, resortCity);
+    for (int i = 0; i < resortCity.length(); i++) {
+        resortCity[i] = tolower(resortCity[i], locale());
+    }
     printCentered("Дата отправления (или нажмите Enter, если этот критерий поиска не важен): ", 1, 0, 0);
     getline(wcin, startDate);
     printCentered("Цена (или нажмите Enter, если этот критерий поиска не важен): ", 1, 0, 0);
     getline(wcin, maxPrice);
-
 }
 
 bool isTourMatchingCriteria(wstring& departureCity, wstring& arrivalCountry, wstring& resortCity, wstring& startDate, wstring& maxPrice, wstring& line) {
@@ -1032,19 +1040,14 @@ void Findtours(wstring**& lines, int& lineCount, int choice) {
 bool isLastMinTour(wstring stoedEndData) {
     SYSTEMTIME t;
     GetLocalTime(&t);
-    int day1 = stoi(stoedEndData.substr(0, 2));
-    int month1 = stoi(stoedEndData.substr(3, 2));
-    int year1 = stoi(stoedEndData.substr(6, 4));
-
-    int day2 = t.wDay;
-    int month2 = t.wMonth;
-    int year2 = t.wYear;
+    int day1 = stoi(stoedEndData.substr(0, 2)), month1 = stoi(stoedEndData.substr(3, 2)), year1 = stoi(stoedEndData.substr(6, 4));
+    
+    int day2 = t.wDay, month2 = t.wMonth, year2 = t.wYear;
 
     int diffYears = year2 - year1;
     int diffMonths = month2 - month1;
     int diffDays = day2 - day1;
 
-    // Обработка исключительных ситуаций
     if (diffMonths < 0) {
         diffYears--;
         diffMonths += 12;
