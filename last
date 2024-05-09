@@ -48,7 +48,6 @@ bool isLastMinTour(wstring stoedEndData);
 void deletingSaveToursAfterDeletingMainTour(wstring deletingtour);
 void adminFunctional(User& currentUserlogin, wstring**& lines, int& lineCount);
 void DeleteChoosenByNumTour(wstring**& lines, int numofdeleting);
-
 int partition(wstring** lines, int low, int high, int cresing, int index);
 void quickSort(wstring** lines, int low, int high, int cresing, int index);
 
@@ -1111,9 +1110,17 @@ int partition(wstring** lines, int low, int high, int cresing, int index) {
     int i = low - 1;
     for (int j = low; j <= high - 1; j++) {
 
-        if ((cresing == 1 && stoi(lines[j][index]) < pivot) || (cresing == 2 && stoi(lines[j][index]) > pivot)) {
-            i++;
-            swap(lines[i], lines[j]);
+        if (isLastMinTour(lines[j][4])) {
+            if ((cresing == 1 && (stoi(lines[j][index]) - stoi(lines[j][index]) * 30) < pivot) || (cresing == 2 && (stoi(lines[j][index]) - stoi(lines[j][index]) * 30) > pivot)) {
+                i++;
+                swap(lines[i], lines[j]);
+            }
+        }
+        else {
+            if ((cresing == 1 && stoi(lines[j][index]) < pivot) || (cresing == 2 && stoi(lines[j][index]) > pivot)) {
+                i++;
+                swap(lines[i], lines[j]);
+            }
         }
 
     }
