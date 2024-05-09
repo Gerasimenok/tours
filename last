@@ -49,6 +49,8 @@ void deletingSaveToursAfterDeletingMainTour(wstring deletingtour);
 void adminFunctional(User& currentUserlogin, wstring**& lines, int& lineCount);
 void DeleteChoosenByNumTour(wstring**& lines, int numofdeleting);
 
+void quickSort(wstring** lines, int low, int high, int cresing);
+int partition(wstring** lines, int low, int high, int cresing);
 
 bool isUsernameUnique(const string& filename, const string& username) {
     ifstream infile(filename);
@@ -84,7 +86,7 @@ bool registerUser(const string& filename, User& currentUserLogin) {//сдела�
         exit(1);
     }
 
-    printCentered("Введите логин: ", 1, 0, 0);
+    printCentered("РЕГИСТРАЦИЯ\nВведите логин: ", 2, 0, 0);
     string username;
     getline(cin, username);
     getline(cin, username);
@@ -92,7 +94,7 @@ bool registerUser(const string& filename, User& currentUserLogin) {//сдела�
 
     while (!unique || containpt || username.empty()) {
         if (!unique) {
-            printCentered("Пользователь с таким логином уже существует. Пожалуйста, выберите другой логин.", 1, 0, 0);
+            printCentered("Пользователь с таким логином уже существует. Пожалуйста, выберите другой логин: ", 1, 0, 0);
         }
         else if (containpt) {
             printCentered("Логин не может содержать пробелы. Пожалуйста, введите еще раз: ", 1, 0, 0);
@@ -106,12 +108,12 @@ bool registerUser(const string& filename, User& currentUserLogin) {//сдела�
         containpt = CorrectLogin(username);
     }
 
-    printCentered("Введите пароль: ", 1, 0, 0);
+    printCentered("РЕГИСТРАЦИЯ\nВведите пароль: ", 2, 0, 0);
     string password;
     cin >> password;
 
     file << username << " " << password << endl;
-    printCentered("Пользователь зарегистрирован. Теперь войдите в систему.", 1, 0, 0);
+    printCentered(username + ", Вы зарегистрированы. Теперь войдите в систему.", 1, 0, 0);
     Sleep(2000);
     currentUserLogin.username = username;
     currentUserLogin.password = password;
@@ -131,9 +133,9 @@ bool loginUser(const string& filename, User& currentUserLogin) {
 
     while (attempts > 0 && !found) {
         string username, password;
-        printCentered("Введите логин: ", 1, 0, 0);
+        printCentered("АВТОРИЗАЦИЯ\nВведите логин: ", 2, 0, 0);
         cin >> username;
-        printCentered("Введите пароль: ", 1, 0, 0);
+        printCentered("АВТОРИЗАЦИЯ\nВведите пароль: ", 2, 0, 0);
         cin >> password;
 
         string storedUsername, storedPassword;
@@ -149,7 +151,7 @@ bool loginUser(const string& filename, User& currentUserLogin) {
 
         if (found) {
             printCentered("Вы успешно вошли в систему.", 1, 0, 0);
-            Sleep(700);
+            Sleep(1000);
             return true;
         }
         else {
@@ -181,7 +183,7 @@ bool adminLogin(const string& adminPasswordFile) {
 
     while (attempts > 0 && !found) {
         string adminPassword;
-        printCentered("Введите пароль администратора: ", 1, 0, 0);
+        printCentered("АВТОРИЗАЦИЯ\nВведите пароль администратора: ", 2, 0, 0);
         cin >> adminPassword;
 
         string storedPassword;
@@ -190,13 +192,13 @@ bool adminLogin(const string& adminPasswordFile) {
         if (adminPassword == storedPassword) {
             printCentered("Вы успешно вошли как администратор.", 1, 0, 0);
             found = true;
-            Sleep(700);
+            Sleep(1000);
         }
         else {
             attempts--;
             if (attempts > 0) {
                 printCentered("Неправильный пароль администратора. Попробуйте еще раз.", 1, 0, 0);
-                Sleep(700);
+                Sleep(1000);
             }
         }
 
@@ -268,15 +270,13 @@ void isSave(User& currentUserlogin, wstring**& lines, int& lineCount) {
         cin >> userchoice;
         if (userchoice > lineCount) {
             printCentered("Тура под таким номером не существует. Выберете еще раз.", 1, 0, 0);
-            Sleep(5000);
+            Sleep(1000);
         }
         else {
             break;
         }
     }
     saveTour(currentUserlogin.username, userchoice - 1, lines, "savedtour.txt");// в вызове отнимать 1 чтобы совпадала нумирация в спискке и в массиве
-
-
 }
 
 void usersFunctional(User& currentUserlogin, wstring**& lines, int& lineCount) {
@@ -318,7 +318,7 @@ void usersFunctional(User& currentUserlogin, wstring**& lines, int& lineCount) {
                             cin >> userchoice;
                             if (userchoice > lineCount) {
                                 printCentered("Тура под таким номером не существует. Выберете еще раз.", 1, 0, 0);
-                                Sleep(5000);
+                                Sleep(1000);
                             }
                             else {
                                 break;
@@ -326,7 +326,7 @@ void usersFunctional(User& currentUserlogin, wstring**& lines, int& lineCount) {
                         }
                         saveTour(currentUserlogin.username, userchoice - 1, lines, "savedtour.txt");// в вызове отнимать 1 чтобы совпадала нумирация в спискке и в массиве
                         cout << "\n\n\n";
-                        system("pause");
+                        Sleep(1000);
                         break;
                     case 2:
                         while (true) {
@@ -335,31 +335,31 @@ void usersFunctional(User& currentUserlogin, wstring**& lines, int& lineCount) {
 
                             while (true) {
                                 printCentered("ОТСОРТИРОВАННЫЕ ТУРЫ\n", lineCount + 2, 0, 0);
-                                int x = 0, y = 0;
-                                printFoundTours(lines, lineCount, x, y, 1, userchoice + 4);
+                                int x = 0, y = 0;                                
+                                printFoundTours(lines, lineCount, x, y, 1, userchoice-1);
                                 printCentered("Желаете ли сохранить какой-нибудь тур (да/нет): ", 1, x, y);
                                 wcin >> userchoicesort;
                                 if (userchoicesort == L"да") {
                                     while (true) {
                                         printCentered("ОТСОРТИРОВАННЫЕ ТУРЫ\n", lineCount + 2, 0, 0);
                                         x = 0, y = 0;
-                                        printFoundTours(lines, lineCount, x, y, 1, userchoice + 4);
+                                        printFoundTours(lines, lineCount, x, y, 1, userchoice-1);
                                         printCentered("Введите номер тура, который хотите сохранить: ", 1, x, y);
                                         cin >> userchoosentour;
                                         if (userchoosentour > lineCount) {
                                             printCentered("Тура под таким номером не существует. Выберете еще раз.", 1, 0, 0);
-                                            Sleep(5000);
+                                            Sleep(1000);
                                         }
                                         else {
                                             break;
                                         }
                                     }
                                     saveTour(currentUserlogin.username, userchoosentour - 1, lines, "savedtour.txt");
-                                    Sleep(3000);
+                                    Sleep(1000);
                                 }
                                 else if (userchoicesort != L"да" && userchoicesort != L"нет") {
                                     printCentered("Введено неверно. Повторите действия.", 1, 0, 0);
-                                    Sleep(3000);
+                                    Sleep(1000);
                                 }
                                 else if (userchoicesort != L"да") {
                                     break;
@@ -375,7 +375,7 @@ void usersFunctional(User& currentUserlogin, wstring**& lines, int& lineCount) {
                                 wcin >> userchoicesort;
                                 if (userchoicesort != L"да" && userchoicesort != L"нет") {
                                     printCentered("Введено неверно. Повторите действия.", 1, 0, 0);
-                                    Sleep(3000);
+                                    Sleep(1000);
                                 }
                                 else {
                                     break;
@@ -422,7 +422,7 @@ void usersFunctional(User& currentUserlogin, wstring**& lines, int& lineCount) {
             printCentered("Действие выбрано неверно. Выполните ввод заново", 1, 0, 0);
             break;
         }
-        Sleep(3000);
+        Sleep(1000);
     }
 };
 
@@ -438,7 +438,7 @@ void adminFunctional(User& currentUserlogin, wstring**& lines, int& lineCount) {
         case 1:
             //редактировать туры
             ShowTours(lines, lineCount);
-            printFoundTours(lines, lineCount - 1, x, y, -1, -1);
+            printFoundTours(lines, lineCount , x, y, -1, -1);
             printCentered("\n\nВведите номер, редактируемого тура: ", 3, x, y);
             cin >> adminchoice;
             editTours(lines, lineCount, "toursmain1.txt", adminchoice);
@@ -531,6 +531,7 @@ void adminFunctional(User& currentUserlogin, wstring**& lines, int& lineCount) {
             Sleep(2000);
             break;
         }
+        cout << "\n\n\n";
         system("pause");
     }
 }
@@ -547,8 +548,7 @@ int main() {
 
     while (isExit) {
 
-        string MAINMENUFORINTER = "1.Регистрация\n2.Вход\n3.Вход для администратора\n4.Выйти\nВыберите действие: ";
-        printCentered(MAINMENUFORINTER, 5, 0, 0);
+        printCentered("НАЧАЛЬНОЕ МЕНЮ\n1.Регистрация\n2.Вход\n3.Вход для администратора\n4.Выйти\nВыберите действие: ", 6, 0, 0);
 
         User currentUserlogin;
         bool entered = false;
@@ -670,9 +670,6 @@ void showUsersSavedTours(int& x, int& y, string filename) {
             savedtours = savedtours.erase(0, savedtours.find(L"\n") + 1);
         }
     }
-    cout << "\n\n\n";
-    system("pause");
-
 }
 
 void ShowTours(wstring**& lines, int& lineCount) {
@@ -743,13 +740,34 @@ void showSavedTours(string userlogin, string filename) {
     else {
         while (true) {
             tempsavedtours = savedtours;
-            printCentered("ВАШИ СОХРАНЕННЫЕ ТУРЫ", count, 0, 0);
+            string skip = "";
+            for (int i = 0; i < count; i++) {
+                skip += "\n";
+            }
+            printCentered("ВАШИ СОХРАНЕННЫЕ ТУРЫ"+ skip, count, 0, 0);   
             CONSOLE_SCREEN_BUFFER_INFO csbi;
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
             int consoleWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
             int consoleHeight = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-            int posY = 1 + (consoleHeight - count) / 2;
-            int posX = (consoleWidth - (savedtours.substr(0, savedtours.find(L"\n"))).length() - 3) / 2;
+
+
+            string criteria1 = "|   город   | страна |  город  |   первое  | последнее |стоимость|отель|рейтинг|  тип  |линия | тип | наличие |необходимость|    тип    |\n";
+            string criteria2 = "|отправления|прибытия|курортный|отправление|отправление|         |     | отеля |питания|берега|пляжа|трансфера|    визы     |перемещения|\n";
+
+            int posY = 1 + (consoleHeight - count - 1) / 2;
+
+            int posX = (consoleWidth - criteria1.length()) / 2;
+
+            HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+            COORD cursorPos = { posX, posY };
+            SetConsoleCursorPosition(consoleHandle, cursorPos);
+            cout << criteria1;
+
+            cursorPos.Y = posY + 1;
+            SetConsoleCursorPosition(consoleHandle, cursorPos);
+            cout << criteria2;
+            posY += 3;
+            posX = (consoleWidth - (savedtours.substr(0, savedtours.find(L"\n"))).length() - 3) / 2;
             for (int i = 0; i < count; ++i) {
                 HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
                 COORD cursorPos = { posX, posY + i };
@@ -788,8 +806,6 @@ void showSavedTours(string userlogin, string filename) {
             }
         }
     }
-    cout << "\n\n\n";
-    system("pause");
 }
 
 void deleteChoosenSavedTour(int tournum, string userlogin) {
@@ -826,7 +842,7 @@ void Exit(User& currentUser) {
             cin >> choice;
         }
     }
-    Sleep(2000);
+    Sleep(1000);
 }
 
 void ShowUsers(int choice) {
@@ -953,6 +969,8 @@ void printFoundTours(wstring** lines, int lineCount, int& x, int& y, int ifcolor
     string criteria2 = "|отправления|прибытия|курортный|отправление|отправление|         |     | отеля |питания|берега|пляжа|трансфера|    визы     |перемещения|\n";
 
     y = 1 + (consoleHeight - lineCount - 1) / 2;
+    //y = 1 + (consoleHeight - lineCount) / 2;
+
     x = (consoleWidth - criteria1.length()) / 2;
 
     HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -1006,37 +1024,36 @@ void ifSort(wstring** lines, int lineCount, int& userchoice) {
 
     system("cls");
     while (true) {
-        printCentered("Отсортировать можно по:\n1. Цене поездки\n2. Количеству ночей в туре\n3. По названию отеля\n4. Рейтингу отеля\n5. Типу питания\n6. Линии пляжа\n7. Типу берега\n8. Наличию трансфера\n9. Наличию визы\n10.Типу перемещению\nВыбрете критерий для сортировки: ", 12, 0, 0);
+        printCentered("Отсортировать можно по:\n1. Городу отправления\n2. Стране прибытия\n3. Курортному городу\n4. Цене поездки\n5. Количеству ночей в туре\n6. По названию отеля\n7. Рейтингу отеля\n8. Типу питания\n9. Линии пляжа\n10. Типу берега\n11. Наличию трансфера\n12. Наличию визы\n13.Типу перемещению\nВыберите критерий для сортировки: ", 15, 0, 0);
         cin >> userchoice;
-        if (userchoice > 10 || userchoice < 0) {
+        if (userchoice > 13 || userchoice < 0) {
             printCentered("Такого критерия для сортировки нет. Повторите действие", 1, 0, 0);
-            Sleep(2000);
+            Sleep(1000);
         }
         else {
             while (true) {
-                if (userchoice == 3) {
+                if (userchoice == 6) {
                     printCentered("Название отлей можно отсортировать от:\n1. A до Z\n2. Z до А\nВыберете действие:", 4, 0, 0);
                     // написать сортировку 
                 }
-                else if (userchoice == 5) {
-                    printCentered("Тип питания можно отсортировать следующим образом:\n1. без питания | завтрак | полупансион | полный пансион | все включено | ультра все включен \n2. ультра все включено |  все включено | полный пансион | полупансион | завтрак | без питания\nВыберете действие:", 4, 0, 0);
+                else if (userchoice == 8) {
+                    printCentered("Тип питания можно отсортировать следующим образом:\n1. без питания | завтрак | полупансион | полный пансион | полупансион c напитками | полный пансион c напитками | все включено | ультра все включен \n2. ультра все включено |  все включено |  полный пансион c напитками | полный пансион | полупансион c напитками |полупансион | завтрак | без питания\nВыберете действие:", 4, 0, 0);
                     // написать сортировку !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 }
-                else if (userchoice == 7) {
+                else if (userchoice == 10) {
                     printCentered("Тип берега можно отсортировать как:\n1. галька | каменистый | песчаный | собственный\n2. собственный | песчаный | каменистый | галька\nВыберете действие:", 4, 0, 0);
                 }
-                else if (userchoice == 8) {
+                else if (userchoice == 11) {
                     printCentered("Введите 1, если хотите, чтоб сначала были отображены туры, предоставляющие трансфер\n2 - если сначала должны быть показаны туры, не предоставляющие трансфер \nВыберете действие:", 3, 0, 0);
                 }
-                else if (userchoice == 9) {
+                else if (userchoice == 12) {
                     printCentered("По наличию визы туры могут быть отсортированы как:\n1. не нужна | нужна | по прилету \n2. по прилету | нужна | не нужна\nВыберете действие:", 4, 0, 0);
                 }
-                else if (userchoice == 10) {
-                    printCentered("Пока не написано", 1, 0, 0);
-                    // дописать!!!!!!!!!!!!!!!!!!!
+                else if (userchoice == 13) {
+                    printCentered("По типу перемещения можно отсортировать: \n1. от A до Я\n2. от Я до А", 1, 0, 0);
                 }
                 else {
-                    printCentered("Вы хотите отсортировать по убыванию или по возрастанию.\nВведите 1, если по убыванию, 2 - по возрастанию: ", 2, 0, 0);
+                    printCentered("Вы хотите отсортировать по убыванию или по возрастанию.\nВведите 1, если по возрастанию, 2 - по убыванию: ", 2, 0, 0);
                 }
                 cin >> cresing;
                 if (cresing != 1 && cresing != 2) {
@@ -1047,13 +1064,46 @@ void ifSort(wstring** lines, int lineCount, int& userchoice) {
                     break;
                 }
             }
-            shakerSort(lines, lineCount, userchoice + 4, cresing);
-            system("cls");
+            
+            if (userchoice == 4) {
+                quickSort(lines, 0, lineCount - 1, cresing);
+            }
+            else {
+                shakerSort(lines, lineCount, userchoice - 1, cresing);
+            }
+
+            if (userchoice >= 4) {
+                userchoice += 2;
+            }
+            system("pause");
             break;
         }
     }
 
 }
+
+int partition(wstring** lines, int low, int high, int cresing) {
+    int pivot = stoi(lines[high][5]);
+    int i = low - 1;
+
+    for (int j = low; j <= high - 1; j++) {
+        if ((cresing == 1 && stoi(lines[j][0]) < pivot) || (cresing == 2 && stoi(lines[j][0]) > pivot))
+            i++;
+            swap(lines[i], lines[j]);
+        }
+    }
+    swap(lines[i + 1], lines[high]);
+    return i + 1;
+}
+
+void quickSort(wstring** lines, int low, int high, int cresing) {
+    if (low < high) {
+        int pi = partition(lines, low, high, cresing);
+        quickSort(lines, low, pi - 1, cresing);
+        quickSort(lines, pi + 1, high, cresing);
+    }
+}
+
 
 void shakerSort(wstring**& lines, int lineCount, int index, int cresing) {
     bool swapped = true;
@@ -1063,42 +1113,23 @@ void shakerSort(wstring**& lines, int lineCount, int index, int cresing) {
         swapped = false;
 
         for (int i = start; i < end; ++i) {
-            switch (cresing)
-            {
-            case 1:
-                if (lines[i][index] > lines[i + 1][index]) {
-                    swap(lines[i], lines[i + 1]);
-                }
-                break;
-            case 2:
-                if (lines[i][index] < lines[i + 1][index]) {
-                    swap(lines[i], lines[i + 1]);
-                }
-                break;
+
+            if ((cresing == 1 && lines[i][index] > lines[i + 1][index]) || (cresing == 2 && lines[i][index] < lines[i + 1][index])){
+                swap(lines[i], lines[i + 1]);
             }
             swapped = true;
         }
+        --end;
 
         if (!swapped) {
             break;
         };
 
         swapped = false;
-        --end;
 
         for (int i = end - 1; i >= start; --i) {
-            switch (cresing)
-            {
-            case 1:
-                if (lines[i][index] > lines[i + 1][index]) {
-                    swap(lines[i], lines[i + 1]);
-                }
-                break;
-            case 2:
-                if (lines[i][index] < lines[i + 1][index]) {
-                    swap(lines[i], lines[i + 1]);
-                }
-                break;
+            if ((cresing == 1 && lines[i][index] > lines[i + 1][index]) || (cresing == 2 && lines[i][index] < lines[i + 1][index])){
+                swap(lines[i], lines[i + 1]);
             }
             swapped = true;
         }
@@ -1479,13 +1510,13 @@ void editTours(wstring**& lines, int lineCount, string filename, int choice) {
 
 string getFieldsOfNewUser() {
     string loginofnewuser, passwordofnewuser;
-    printCentered("Введите логин добавляемого пользователя: ", 1, 0, 0);
+    printCentered("Введите логин, добавляемого пользователя: ", 1, 0, 0);
     cin >> loginofnewuser;
     while (!isUsernameUnique("users.txt", loginofnewuser)) {
         printCentered("Пользователь с таким логином уже существует. Пожалуйста, выберите другой логин.\nВведите логин добавляемого пользователя: ", 1, 0, 0);
         cin >> loginofnewuser;
     }
-    printCentered("Введите пароль добавляемого пользователя: ", 1, 0, 0);
+    printCentered("Введите пароль, добавляемого пользователя: ", 1, 0, 0);
     cin >> passwordofnewuser;
     return (loginofnewuser + " " + passwordofnewuser);
 }
@@ -1518,8 +1549,9 @@ void addNewTour(const string filename, wstring addedline) {
 }
 
 wstring getFieldsOfNewTour() {
-    wstring data, input;
+    wstring data, input, start;
     string choicecontinue = "да", choiceadd;
+    ;
     int countofadd = 0;
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
@@ -1558,40 +1590,121 @@ wstring getFieldsOfNewTour() {
             case 4:
                 printCentered("Введите дату первого отправления в формате дд.мм.гггг: ", 1, 0, 0); //проверять чтоб были тольлко цифры
                 getline(wcin, data);
-                while (data.length() != 6) {
-                    if (stoi(data.substr(0, 2)) <= 0 && stoi(data.substr(3, 2)) <= 0 && stoi(data.substr(6, 4)) <= 0) {                        
-                        printCentered("Дата первого отправления введена неверно.\nВведите заново: ", 2, 0, 0);
+                while (true) {
+                    start = data;
+                    for (char c : data.substr(0, 2)) {
+                        if (!isdigit(c)) {
+                            printCentered("Дата не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
+                            getline(wcin, data);
+                            break;
+                        }
+                    }
+                    for (char c : data.substr(3, 2)) {
+                        if (!isdigit(c)) {
+                            printCentered("Дата не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
+                            getline(wcin, data);
+                            break;
+                        }
+                    }
+                    for (char c : data.substr(6, 4)) {
+                        if (!isdigit(c)) {
+                            printCentered("Дата не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
+                            getline(wcin, data);
+                            break;
+                        }
+                    }
+                    if (data.length() != 10) {
+                        printCentered("Дата имеет неверный формат.\nВведите заново: ", 2, 0, 0);
                         getline(wcin, data);
                     }                    
+                    else if (stoi(data.substr(0, 2)) <= 0 && stoi(data.substr(3, 2)) <= 0 && stoi(data.substr(6, 4)) <= 0) {
+                        printCentered("Дата последнего отправления введена неверно.\nВведите заново: ", 2, 0, 0);
+                        getline(wcin, data);
+                    }
+                    else {
+                        break;
+                    }                            
                 }
                 break;
             case 5:
-                printCentered("Введите дату последнего отправления: ", 1, 0, 0);// проверять чтоб дата последнего была больше началального
+                printCentered("Введите дату последнего отправления: ", 1, 0, 0);
                 getline(wcin, data);
-                while (data.length() != 6) {
+                while (true) {                   
+                    for (char c : data.substr(0,2)) {
+                        if (!isdigit(c)) {
+                            printCentered("Дата не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
+                            getline(wcin, data);
+                            break;
+                        }
+                    }
+                    for (char c : data.substr(3, 2)) {
+                        if (!isdigit(c)) {
+                            printCentered("Дата не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
+                            getline(wcin, data);
+                            break;
+                        }
+                    }
+                    for (char c : data.substr(6, 4)) {
+                        if (!isdigit(c)) {
+                            printCentered("Дата не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
+                            getline(wcin, data);
+                            break;
+                        }
+                    }
+                    if (data.length() != 10) {
+                        printCentered("Дата имеет неверный формат.\nВведите заново: ", 2, 0, 0);
+                        getline(wcin, data);
+                    } else 
+                    if ((data.substr(6, 4) + data.substr(3, 2) + data.substr(0, 2)) <= (start.substr(6, 4) + start.substr(3, 2) + start.substr(0, 2))) {
+                        printCentered("Дата последнего отправления не может совпадать или быть позже первого отправления.\nВведите дату последнего отправления заново: ", 2, 0, 0);
+                        getline(wcin, data);
+                    } else 
                     if (stoi(data.substr(0, 2)) <= 0 && stoi(data.substr(3, 2)) <= 0 && stoi(data.substr(6, 4)) <= 0) {
                         printCentered("Дата последнего отправления введена неверно.\nВведите заново: ", 2, 0, 0);
                         getline(wcin, data);
                     }
+                    else {
+                        break;
+                    }
                 }
                 break;
             case 6:
-                printCentered("Введите цену: ", 1, 0, 0);// проверять на цифры
+                printCentered("Введите цену: ", 1, 0, 0);
                 getline(wcin, data);
-                while (data.length() != 6) {
+                while (true) {
+                    for (char c : data) {
+                        if (!isdigit(c)) {
+                            printCentered("Цена не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
+                            getline(wcin, data);
+                            break;
+                        }
+                    }
                     if (stoi(data) <= 0) {
                         printCentered("Цена введена неверно.\nВведите заново: ", 2, 0, 0);
                         getline(wcin, data);
                     }
+                    else {
+                        break;
+                    }
                 }
                 break;
             case 7:
-                printCentered("Введите количество ночей: ", 1, 0, 0); // проверять на цифры
+                printCentered("Введите количество ночей: ", 1, 0, 0); 
                 getline(wcin, data);
-                while (data.length() != 6) {
+                while (true) {
+                    for (char c : data) {
+                        if (!isdigit(c)) {
+                            printCentered("Цена не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
+                            getline(wcin, data);
+                            break;
+                        }
+                    }
                     if (stoi(data) <= 0) {
                         printCentered("Количество ночей введено неверно.\nВведите заново: ", 2, 0, 0);
                         getline(wcin, data);
+                    }
+                    else {
+                        break;
                     }
                 }
                 break;
@@ -1606,24 +1719,36 @@ wstring getFieldsOfNewTour() {
             case 9:
                 printCentered("Введите рейтинг отеля: ", 1, 0, 0);// проверять на цифры
                 getline(wcin, data);
-                while (stoi(data) <= 0) {
-                    printCentered("Рейтинг отеля введен неверно.\nВведите заново: ", 2, 0, 0);
-                    getline(wcin, data);
+                while (true) {
+                    for (char c : data) {
+                        if (!isdigit(c)) {
+                            printCentered("Цена не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
+                            getline(wcin, data);
+                            break;
+                        }
+                    }
+                    if (stoi(data) <= 0 || stoi(data) > 5) {
+                        printCentered("Рейтинг отеля введен неверно.\nВведите заново: ", 2, 0, 0);
+                        getline(wcin, data);
+                    }
                 }
                 break;
             case 10:
-                printCentered("Введите тип питания: ", 1, 0, 0);
+                printCentered("Типы питания\nBB - завтраки\nHB - полупансион(завтрак и ужин)\nFB - полный пансион(завтрак, обед и ужин)\nHB+ - полупансион с напитками\nFB+ - полный пансион с напитками\nAI - все включено \nUAI - ультра все включено\nВведите тип питания: ", 9, 0, 0);
                 getline(wcin, data);
+                for (int i = 0; i < data.length(); i++) {
+                    data[i] = tolower(data[i], locale());
+                }
                 while (data != L"bb" && data != L"hb" && data != L"fb" && data != L"hb+" && data != L"fb+" && data != L"ai" && data != L"uai" ) {
-                    printCentered("Тип питания введен неверно.\nВведите заново: ", 2, 0, 0);
+                    printCentered("Тип питания введен неверно.\nВведите заново (BB, HB, FB, HB+, FB+, AI, UAI): ", 2, 0, 0);
                     getline(wcin, data);
                 }
                 break;
             case 11:
-                printCentered("Введите линию пляжа: ", 1, 0, 0);
+                printCentered("Линии пляжа\nЕсли до моря < 100 м, то линия пляжа первая\nЕсли до моря < 200 м, то линия пляжа вторая\nЕсли до моря > 300 м, то линия пляжа третья\nОсуществите ввод(1, 2 или 3): ", 5, 0, 0);
                 getline(wcin, data);
                 while (stoi(data) != 1 && stoi(data) != 2 && stoi(data) != 3) {
-                    printCentered("Линия пляжа введена неверно.\nВведите заново: ", 2, 0, 0);
+                    printCentered("Линия пляжа введена неверно.\nВведите заново (1, 2 или 3): ", 2, 0, 0);
                     getline(wcin, data);
                 }
                 break;
@@ -1639,7 +1764,7 @@ wstring getFieldsOfNewTour() {
                 printCentered("Введите наличие трансфера(есть/нет): ", 1, 0, 0);
                 getline(wcin, data);
                 while (data != L"есть" && data != L"нет") {
-                    printCentered("Наличие трансфера введено неверно.\nВведите заново: ", 2, 0, 0);
+                    printCentered("Наличие трансфера введено неверно.\nВведите заново наличие трансфера(есть/нет): ", 2, 0, 0);
                     getline(wcin, data);
                 }
                 break;
@@ -1655,7 +1780,7 @@ wstring getFieldsOfNewTour() {
                 printCentered("Введите тип перемещения: ", 1, 0, 0);
                 getline(wcin, data);
                 while (data.empty()) {
-                    printCentered("тип перемещения введен неверно.\nВведите заново: ", 2, 0, 0);
+                    printCentered("Тип перемещения введен неверно.\nВведите заново: ", 2, 0, 0);
                     getline(wcin, data);
                 }
                 break;
@@ -1667,7 +1792,6 @@ wstring getFieldsOfNewTour() {
 
         wstring test = input + L"\n";
         system("cls");
-
 
         int posY = (consoleHeight - countofadd + 1) / 2;
         int posX = 0;
