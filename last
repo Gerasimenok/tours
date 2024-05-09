@@ -49,8 +49,9 @@ void deletingSaveToursAfterDeletingMainTour(wstring deletingtour);
 void adminFunctional(User& currentUserlogin, wstring**& lines, int& lineCount);
 void DeleteChoosenByNumTour(wstring**& lines, int numofdeleting);
 
-void quickSort(wstring** lines, int low, int high, int cresing);
-int partition(wstring** lines, int low, int high, int cresing);
+int partition(wstring** lines, int low, int high, int cresing, int index);
+void quickSort(wstring** lines, int low, int high, int cresing, int index);
+
 
 bool isUsernameUnique(const string& filename, const string& username) {
     ifstream infile(filename);
@@ -385,7 +386,7 @@ void usersFunctional(User& currentUserlogin, wstring**& lines, int& lineCount) {
                             if (userchoicesort == L"нет") {
                                 break;
                             }
-                        }
+                        }                         
                         break;
                     case 0:
                         iscontinue = false;
@@ -697,6 +698,10 @@ void saveTour(string currentlogin, int choice, wstring**& lines, string filename
     else {
         wstring string, line;
         bool issafe = false;
+        /*
+        if (isLastMinTour(lines[choice][4])) {
+            lines[choice][5] = (to_wstring(static_cast<int>(round(stod(lines[i][5]) - stod(lines[i][5]) * 0.3))));
+        }*/
         for (int i = 0; i < 15; i++) {
             string += lines[choice][i] + L"/";
         }
@@ -744,7 +749,7 @@ void showSavedTours(string userlogin, string filename) {
             for (int i = 0; i < count; i++) {
                 skip += "\n";
             }
-            printCentered("ВАШИ СОХРАНЕННЫЕ ТУРЫ"+ skip, count, 0, 0);   
+            printCentered("ВАШИ СОХРАНЕННЫЕ ТУРЫ"+ skip, count+1, 0, 0);   
             CONSOLE_SCREEN_BUFFER_INFO csbi;
             GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
             int consoleWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
@@ -969,8 +974,6 @@ void printFoundTours(wstring** lines, int lineCount, int& x, int& y, int ifcolor
     string criteria2 = "|отправления|прибытия|курортный|отправление|отправление|         |     | отеля |питания|берега|пляжа|трансфера|    визы     |перемещения|\n";
 
     y = 1 + (consoleHeight - lineCount - 1) / 2;
-    //y = 1 + (consoleHeight - lineCount) / 2;
-
     x = (consoleWidth - criteria1.length()) / 2;
 
     HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -994,10 +997,11 @@ void printFoundTours(wstring** lines, int lineCount, int& x, int& y, int ifcolor
         COORD cursorPos = { x, y };
         SetConsoleCursorPosition(consoleHandle, cursorPos);
         bool islastmintour = isLastMinTour(lines[i][4]);
+        wstring templinesi5;
         if (islastmintour) {
             SetConsoleTextAttribute(consoleHandle, FOREGROUND_RED | FOREGROUND_GREEN);
-            int size = lines[i][5].size();
-            lines[i][5] = (to_wstring(stoi(lines[i][5]) - stoi(lines[i][5]) * 0.3)).substr(0, size);
+            templinesi5 = lines[i][5];
+            lines[i][5] = (to_wstring(static_cast<int>(round(stod(lines[i][5]) - stod(lines[i][5]) * 0.3))));
         }
         cout << i + 1 << ". ";
         for (int j = 0; lines[i][j] != L""; ++j) {
@@ -1014,6 +1018,10 @@ void printFoundTours(wstring** lines, int lineCount, int& x, int& y, int ifcolor
         }
         SetConsoleTextAttribute(consoleHandle, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
         y++;
+        
+        if (islastmintour) {
+            lines[i][5] = templinesi5;
+        }
     }
 }
 
@@ -1024,7 +1032,7 @@ void ifSort(wstring** lines, int lineCount, int& userchoice) {
 
     system("cls");
     while (true) {
-        printCentered("Отсортировать можно по:\n1. Городу отправления\n2. Стране прибытия\n3. Курортному городу\n4. Цене поездки\n5. Количеству ночей в туре\n6. По названию отеля\n7. Рейтингу отеля\n8. Типу питания\n9. Линии пляжа\n10. Типу берега\n11. Наличию трансфера\n12. Наличию визы\n13.Типу перемещению\nВыберите критерий для сортировки: ", 15, 0, 0);
+        printCentered("Отсортировать можно по:\n1. Городу отправления\n2. Стране прибытия\n3. Курортному городу\n4. Цене поездки\n5. Количеству ночей в туре\n6. По названию отеля\n7. Рейтингу отеля\n8. Типу питания\n9. Линии пляжа\n10. Типу берега\n11. Наличию трансфера\n12. Наличию визы\n13. Типу перемещению\nВыберите критерий для сортировки: ", 15, 0, 0);
         cin >> userchoice;
         if (userchoice > 13 || userchoice < 0) {
             printCentered("Такого критерия для сортировки нет. Повторите действие", 1, 0, 0);
@@ -1032,25 +1040,37 @@ void ifSort(wstring** lines, int lineCount, int& userchoice) {
         }
         else {
             while (true) {
-                if (userchoice == 6) {
-                    printCentered("Название отлей можно отсортировать от:\n1. A до Z\n2. Z до А\nВыберете действие:", 4, 0, 0);
-                    // написать сортировку 
+                if (userchoice==1) {
+                    printCentered("Города отправления можно отсортировать от:\n1. A до Я\n2. Я до А\nВыберете действие: ", 4, 0, 0);
+                } 
+                else if (userchoice == 2) {
+                    printCentered("Страны прибытия можно отсортировать от:\n1. A до Я\n2. Я до А\nВыберете действие: ", 4, 0, 0);
+                }
+                else if (userchoice == 3) {
+                    printCentered("Курортные города можно отсортировать от:\n1. A до Я\n2. Я до А\nВыберете действие: ", 4, 0, 0);
+                } 
+                else if (userchoice == 6) {
+                    printCentered("Название отлей можно отсортировать от:\n1. A до Z\n2. Z до А\nВыберете действие: ", 4, 0, 0);
                 }
                 else if (userchoice == 8) {
-                    printCentered("Тип питания можно отсортировать следующим образом:\n1. без питания | завтрак | полупансион | полный пансион | полупансион c напитками | полный пансион c напитками | все включено | ультра все включен \n2. ультра все включено |  все включено |  полный пансион c напитками | полный пансион | полупансион c напитками |полупансион | завтрак | без питания\nВыберете действие:", 4, 0, 0);
-                    // написать сортировку !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    string str1 = "Тип питания можно отсортировать следующим образом :                                                                                                  \n";
+                    string str2 = "1. | без питания | завтрак | полупансион | полный пансион | полупансион c напитками | полный пансион c напитками | все включено | ультра все включено |\n";
+                    string str3 = "   |     ro      |   bb    |     fb      |       hb       |           fb+           |             hb+            |      ai      |         aui         |\n";
+                    string str4="\n2. | ультра все включено | все включено | полный пансион c напитками | полный пансион | полупансион c напитками | полупансион | завтрак | без питания |\n";
+                    string str5 = "   |          aui        |      ai      |             hb+            |       hb       |           fb+           |     fb      |   bb    |     ro      |\n";
+                    printCentered(str1 + str2 + str3 + str4 + str5 + "Выберете действие: ", 7, 0, 0);
                 }
                 else if (userchoice == 10) {
-                    printCentered("Тип берега можно отсортировать как:\n1. галька | каменистый | песчаный | собственный\n2. собственный | песчаный | каменистый | галька\nВыберете действие:", 4, 0, 0);
+                    printCentered("Тип берега можно отсортировать как:\n1. галька | каменистый | песчаный | собственный\n2. собственный | песчаный | каменистый | галька\nВыберете действие: ", 4, 0, 0);
                 }
                 else if (userchoice == 11) {
-                    printCentered("Введите 1, если хотите, чтоб сначала были отображены туры, предоставляющие трансфер\n2 - если сначала должны быть показаны туры, не предоставляющие трансфер \nВыберете действие:", 3, 0, 0);
+                    printCentered("Введите 1, если хотите, чтоб сначала были отображены туры, предоставляющие трансфер\n2 - если сначала должны быть показаны туры, не предоставляющие трансфер\nВыберете действие: ", 3, 0, 0);
                 }
                 else if (userchoice == 12) {
-                    printCentered("По наличию визы туры могут быть отсортированы как:\n1. не нужна | нужна | по прилету \n2. по прилету | нужна | не нужна\nВыберете действие:", 4, 0, 0);
+                    printCentered("По наличию визы туры могут быть отсортированы как:\n1. не нужна | нужна | по прилету \n2. по прилету | нужна | не нужна\nВыберете действие: ", 4, 0, 0);
                 }
                 else if (userchoice == 13) {
-                    printCentered("По типу перемещения можно отсортировать: \n1. от A до Я\n2. от Я до А", 1, 0, 0);
+                    printCentered("По типу перемещения можно отсортировать: \n1. от A до Я\n2. от Я до А\nВыберете действие: ", 4, 0, 0);
                 }
                 else {
                     printCentered("Вы хотите отсортировать по убыванию или по возрастанию.\nВведите 1, если по возрастанию, 2 - по убыванию: ", 2, 0, 0);
@@ -1064,46 +1084,50 @@ void ifSort(wstring** lines, int lineCount, int& userchoice) {
                     break;
                 }
             }
-            
-            if (userchoice == 4) {
-                quickSort(lines, 0, lineCount - 1, cresing);
+
+            if (userchoice >= 4) {
+                userchoice += 2;
+            } 
+
+            if (userchoice == 6 || userchoice == 7 || userchoice == 9) {
+
+                quickSort(lines, 0, lineCount - 1, cresing, userchoice-1);
+            }
+            else if (userchoice==8) {
+                //последовательный бинарный поиск
             }
             else {
                 shakerSort(lines, lineCount, userchoice - 1, cresing);
             }
-
-            if (userchoice >= 4) {
-                userchoice += 2;
-            }
-            system("pause");
+            system("cls");
             break;
         }
     }
 
 }
 
-int partition(wstring** lines, int low, int high, int cresing) {
-    int pivot = stoi(lines[high][5]);
+int partition(wstring** lines, int low, int high, int cresing, int index) {
+    int pivot = stoi(lines[high][index]);
     int i = low - 1;
-
     for (int j = low; j <= high - 1; j++) {
-        if ((cresing == 1 && stoi(lines[j][0]) < pivot) || (cresing == 2 && stoi(lines[j][0]) > pivot))
+
+        if ((cresing == 1 && stoi(lines[j][index]) < pivot) || (cresing == 2 && stoi(lines[j][index]) > pivot)) {
             i++;
             swap(lines[i], lines[j]);
         }
+
     }
     swap(lines[i + 1], lines[high]);
     return i + 1;
 }
 
-void quickSort(wstring** lines, int low, int high, int cresing) {
+void quickSort(wstring** lines, int low, int high, int cresing, int index) {
     if (low < high) {
-        int pi = partition(lines, low, high, cresing);
-        quickSort(lines, low, pi - 1, cresing);
-        quickSort(lines, pi + 1, high, cresing);
+        int pi = partition(lines, low, high, cresing, index);
+        quickSort(lines, low, pi - 1, cresing, index);
+        quickSort(lines, pi + 1, high, cresing, index);
     }
 }
-
 
 void shakerSort(wstring**& lines, int lineCount, int index, int cresing) {
     bool swapped = true;
@@ -1734,12 +1758,12 @@ wstring getFieldsOfNewTour() {
                 }
                 break;
             case 10:
-                printCentered("Типы питания\nBB - завтраки\nHB - полупансион(завтрак и ужин)\nFB - полный пансион(завтрак, обед и ужин)\nHB+ - полупансион с напитками\nFB+ - полный пансион с напитками\nAI - все включено \nUAI - ультра все включено\nВведите тип питания: ", 9, 0, 0);
+                printCentered("Типы питания\nRO - без питания\nBB - завтраки\nHB - полупансион(завтрак и ужин)\nFB - полный пансион(завтрак, обед и ужин)\nHB+ - полупансион с напитками\nFB+ - полный пансион с напитками\nAI - все включено \nUAI - ультра все включено\nВведите тип питания: ", 10, 0, 0);
                 getline(wcin, data);
                 for (int i = 0; i < data.length(); i++) {
                     data[i] = tolower(data[i], locale());
                 }
-                while (data != L"bb" && data != L"hb" && data != L"fb" && data != L"hb+" && data != L"fb+" && data != L"ai" && data != L"uai" ) {
+                while (data != L"ro" && data != L"bb" && data != L"hb" && data != L"fb" && data != L"hb+" && data != L"fb+" && data != L"ai" && data != L"uai" ) {
                     printCentered("Тип питания введен неверно.\nВведите заново (BB, HB, FB, HB+, FB+, AI, UAI): ", 2, 0, 0);
                     getline(wcin, data);
                 }
