@@ -34,7 +34,7 @@ void addNewTour(const string filename, wstring addedline);
 wstring getFieldsOfNewTour();
 void addFoundToursInArray(wstring**& lines, int& lineCount, const wstring& line);
 void shakerSort(wstring**& lines, int lineCount, int index, int cresing);
-void ifSort(wstring** lines, int lineCount, int& userchoice);
+void ifSort(wstring**& lines, int lineCount, int& userchoice);
 void Exit(User& currentUser);
 void ShowTours(wstring**& lines, int& lineCount);
 void saveTour(string currentlogin, int choice, wstring**& lines, string filename);
@@ -48,8 +48,8 @@ bool isLastMinTour(wstring stoedEndData);
 void deletingSaveToursAfterDeletingMainTour(wstring deletingtour);
 void adminFunctional(User& currentUserlogin, wstring**& lines, int& lineCount);
 void DeleteChoosenByNumTour(wstring**& lines, int numofdeleting);
-int partition(wstring** lines, int low, int high, int cresing, int index);
-void quickSort(wstring** lines, int low, int high, int cresing, int index);
+int partition(wstring**& lines, int low, int high, int cresing, int index);
+void quickSort(wstring**& lines, int low, int high, int cresing, int index);
 
 
 bool isUsernameUnique(const string& filename, const string& username) {
@@ -1024,7 +1024,7 @@ void printFoundTours(wstring** lines, int lineCount, int& x, int& y, int ifcolor
     }
 }
 
-void ifSort(wstring** lines, int lineCount, int& userchoice) {
+void ifSort(wstring**& lines, int lineCount, int& userchoice) {
 
     string userchoicesort;
     int cresing;
@@ -1089,8 +1089,7 @@ void ifSort(wstring** lines, int lineCount, int& userchoice) {
             } 
 
             if (userchoice == 6 || userchoice == 7 || userchoice == 9) {
-
-                quickSort(lines, 0, lineCount - 1, cresing, userchoice-1);
+                quickSort(lines, 0, lineCount - 1, cresing, userchoice-1);                
             }
             else if (userchoice==8) {
                 //последовательный бинарный поиск
@@ -1105,12 +1104,14 @@ void ifSort(wstring** lines, int lineCount, int& userchoice) {
 
 }
 
-int partition(wstring** lines, int low, int high, int cresing, int index) {
+int partition(wstring** &lines, int low, int high, int cresing, int index) {
     int pivot = stoi(lines[high][index]);
+    if (isLastMinTour(lines[high][4]) && index == 5) {
+        pivot -= pivot * 30;
+    }
     int i = low - 1;
     for (int j = low; j <= high - 1; j++) {
-
-        if (isLastMinTour(lines[j][4])) {
+        if (isLastMinTour(lines[j][4]) && index == 5) {
             if ((cresing == 1 && (stoi(lines[j][index]) - stoi(lines[j][index]) * 30) < pivot) || (cresing == 2 && (stoi(lines[j][index]) - stoi(lines[j][index]) * 30) > pivot)) {
                 i++;
                 swap(lines[i], lines[j]);
@@ -1122,13 +1123,12 @@ int partition(wstring** lines, int low, int high, int cresing, int index) {
                 swap(lines[i], lines[j]);
             }
         }
-
     }
     swap(lines[i + 1], lines[high]);
     return i + 1;
 }
 
-void quickSort(wstring** lines, int low, int high, int cresing, int index) {
+void quickSort(wstring** &lines, int low, int high, int cresing, int index) {
     if (low < high) {
         int pi = partition(lines, low, high, cresing, index);
         quickSort(lines, low, pi - 1, cresing, index);
