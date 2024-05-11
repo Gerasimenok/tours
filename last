@@ -33,7 +33,7 @@ string getFieldsOfNewUser();
 void addNewTour(const string filename, wstring addedline);
 wstring getFieldsOfNewTour();
 void addFoundToursInArray(wstring**& lines, int& lineCount, const wstring& line);
-void shakerSort(wstring**& lines, int lineCount, int index, int cresing);
+void shakerSort(wstring**& lines, int start, int lineCount, int index, int cresing);
 void ifSort(wstring**& lines, int lineCount, int& userchoice);
 void Exit(User& currentUser);
 void ShowTours(wstring**& lines, int& lineCount);
@@ -44,12 +44,13 @@ void showUsersSavedTours(int& x, int& y, string filename);
 void deleteSavedTours(string username);
 void editSavedTours(string olduserlogin, string newuserlogin);
 void deleteChoosenSavedTour(int tournum, string userlogin);
-bool isLastMinTour(wstring stoedEndData);
+bool isLastMinTour(int index, wstring**& lines, int role);
 void deletingSaveToursAfterDeletingMainTour(wstring deletingtour);
 void adminFunctional(User& currentUserlogin, wstring**& lines, int& lineCount);
 void DeleteChoosenByNumTour(wstring**& lines, int numofdeleting);
 int partition(wstring**& lines, int low, int high, int cresing, int index);
 void quickSort(wstring**& lines, int low, int high, int cresing, int index);
+int binarySearch(wstring** lines, int left, int lineCount, wstring foodtype);
 
 
 bool isUsernameUnique(const string& filename, const string& username) {
@@ -995,12 +996,10 @@ void printFoundTours(wstring** lines, int lineCount, int& x, int& y, int ifcolor
         HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
         COORD cursorPos = { x, y };
         SetConsoleCursorPosition(consoleHandle, cursorPos);
-        bool islastmintour = isLastMinTour(lines[i][4]);
+        bool islastmintour = isLastMinTour(i, lines, 1);
         wstring templinesi5;
         if (islastmintour) {
             SetConsoleTextAttribute(consoleHandle, FOREGROUND_RED | FOREGROUND_GREEN);
-            templinesi5 = lines[i][5];
-            lines[i][5] = (to_wstring(static_cast<int>(round(stod(lines[i][5]) - stod(lines[i][5]) * 0.3))));
         }
         cout << i + 1 << ". ";
         for (int j = 0; lines[i][j] != L""; ++j) {
@@ -1017,10 +1016,6 @@ void printFoundTours(wstring** lines, int lineCount, int& x, int& y, int ifcolor
         }
         SetConsoleTextAttribute(consoleHandle, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
         y++;
-        
-        if (islastmintour) {
-            lines[i][5] = templinesi5;
-        }
     }
 }
 
@@ -1091,11 +1086,37 @@ void ifSort(wstring**& lines, int lineCount, int& userchoice) {
             if (userchoice == 6 || userchoice == 7 || userchoice == 9) {
                 quickSort(lines, 0, lineCount - 1, cresing, userchoice-1);                
             }
-            else if (userchoice==8) {
-                //последовательный бинарный поиск
+            else if (userchoice==10) {
+                 
+                wstring foodtypes;
+                if (cresing == 1) {
+                    foodtypes = L"ro/bb/fb/fb+/hb/hb+/ai/uai";
+                }
+                else {
+                    foodtypes = L"uai/ai/hb+/hb/fb+/fb/bb/ro";
+                }
+
+                wstring foodtype = foodtypes.substr(0, foodtypes.find(L"/"));
+                foodtypes = foodtypes.erase(0, foodtypes.find(L"/") + 1);
+                int i = 0;
+
+                while (i != lineCount) {
+                    shakerSort(lines, i, lineCount, userchoice - 1, 1);
+                    int index = binarySearch(lines, i, lineCount, foodtype);
+
+                    if (index == -1) {
+                        foodtype = foodtypes.substr(0, foodtypes.find(L"/"));
+                        foodtypes = foodtypes.erase(0, foodtypes.find(L"/") + 1);
+                    }
+                    else {                       
+                        swap(lines[index], lines[i]);
+                        i++;                        
+                    }
+                }
+
             }
             else {
-                shakerSort(lines, lineCount, userchoice - 1, cresing);
+                shakerSort(lines, 0, lineCount, userchoice - 1, cresing);
             }
             system("cls");
             break;
@@ -1104,28 +1125,41 @@ void ifSort(wstring**& lines, int lineCount, int& userchoice) {
 
 }
 
-int partition(wstring** &lines, int low, int high, int cresing, int index) {
-    int pivot = stoi(lines[high][index]);
-    if (isLastMinTour(lines[high][4]) && index == 5) {
-        pivot -= pivot * 30;
-    }
-    int i = low - 1;
-    for (int j = low; j <= high - 1; j++) {
-        if (isLastMinTour(lines[j][4]) && index == 5) {
-            if ((cresing == 1 && (stoi(lines[j][index]) - stoi(lines[j][index]) * 30) < pivot) || (cresing == 2 && (stoi(lines[j][index]) - stoi(lines[j][index]) * 30) > pivot)) {
-                i++;
-                swap(lines[i], lines[j]);
-            }
+
+int binarySearch(wstring** lines, int left, int lineCount, wstring foodtype) {
+    int right = lineCount-1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+
+        if (lines[mid][9] == foodtype) {
+            return mid;
+        }
+        else if (lines[mid][9] < foodtype) {
+            left = mid + 1;
         }
         else {
-            if ((cresing == 1 && stoi(lines[j][index]) < pivot) || (cresing == 2 && stoi(lines[j][index]) > pivot)) {
-                i++;
-                swap(lines[i], lines[j]);
-            }
+            right = mid - 1;
         }
+        wstring line = lines[mid][9];
+    }
+
+    return -1; 
+}
+
+
+int partition(wstring** &lines, int low, int high, int cresing, int index) {
+    int pivot = stoi(lines[high][index]);
+
+    int i = low - 1;
+    for (int j = low; j <= high - 1; j++) {
+        if ((cresing == 1 && stoi(lines[j][index]) < pivot) || (cresing == 2 && stoi(lines[j][index]) > pivot)) {
+            i++;
+            swap(lines[i], lines[j]);
+        }     
     }
     swap(lines[i + 1], lines[high]);
-    return i + 1;
+    return i+1;
 }
 
 void quickSort(wstring** &lines, int low, int high, int cresing, int index) {
@@ -1136,9 +1170,9 @@ void quickSort(wstring** &lines, int low, int high, int cresing, int index) {
     }
 }
 
-void shakerSort(wstring**& lines, int lineCount, int index, int cresing) {
+
+void shakerSort(wstring**& lines, int start, int lineCount, int index, int cresing) {
     bool swapped = true;
-    int start = 0;
     int end = lineCount - 1;
     while (swapped) {
         swapped = false;
@@ -1169,6 +1203,113 @@ void shakerSort(wstring**& lines, int lineCount, int index, int cresing) {
 }
 
 
+
+
+
+
+
+/*
+
+
+
+void shakerSort(wstring**& lines, int start, int lineCount, int index, int cresing) {
+    bool swapped = true;
+    int end = lineCount - 1;
+    while (swapped) {
+        swapped = false;
+
+        for (int i = start; i < end; ++i) {
+            bool isLastMinTouri = isLastMinTour(lines[i][4]),
+                isLastMinTourii = isLastMinTour(lines[i + 1][4]);
+            if (isLastMinTouri && index == 5 && isLastMinTourii) {
+                if (cresing == 1 || stoi(lines[i][index]) - stoi(lines[i][index]) * 0.3 > stoi(lines[i + 1][index]) - stoi(lines[i + 1][index]) * 0.3 ||
+                    cresing == 2 || stoi(lines[i][index]) - stoi(lines[i][index]) * 0.3 < stoi(lines[i + 1][index]) - stoi(lines[i + 1][index]) * 0.3) {
+                    swap(lines[i], lines[i + 1]);
+                    swapped = true;
+                }
+            }
+            if (isLastMinTouri && index == 5 && !isLastMinTourii) {
+                if (cresing == 1 && stoi(lines[i][index]) - stoi(lines[i][index]) * 0.3 > stoi(lines[i + 1][index]) ||
+                    cresing == 2 && stoi(lines[i][index]) - stoi(lines[i][index]) * 0.3 < stoi(lines[i + 1][index])) {
+                    swap(lines[i], lines[i + 1]);
+                    swapped = true;
+                }
+            }
+
+            if (!isLastMinTouri && index == 5 && isLastMinTourii) {
+                if (cresing == 1 && stoi(lines[i][index]) > stoi(lines[i + 1][index]) - stoi(lines[i + 1][index]) * 0.3 ||
+                    cresing == 2 && stoi(lines[i][index]) < stoi(lines[i + 1][index]) - stoi(lines[i + 1][index]) * 0.3) {
+                    swap(lines[i], lines[i + 1]);
+                    swapped = true;
+                }
+            }
+
+            if (!isLastMinTouri && index == 5 && !isLastMinTourii) {
+                if (cresing == 1 && stoi(lines[i][index]) > stoi(lines[i + 1][index]) ||
+                    cresing == 2 && stoi(lines[i][index]) < stoi(lines[i + 1][index])){;
+                    swapped = true;
+                }
+            }
+
+        }
+        --end;
+
+        if (!swapped) {
+            break;
+        };
+
+        swapped = false;
+
+        for (int i = end - 1; i >= start; --i) {
+            bool isLastMinTouri = isLastMinTour(lines[i][4]),
+                isLastMinTourii = isLastMinTour(lines[i + 1][4]);
+            if (isLastMinTouri && index == 5 && isLastMinTourii) {
+                if (cresing == 1 || stoi(lines[i][index]) - stoi(lines[i][index]) * 0.3 > stoi(lines[i + 1][index]) - stoi(lines[i + 1][index]) * 0.3 ||
+                    cresing == 2 || stoi(lines[i][index]) - stoi(lines[i][index]) * 0.3 < stoi(lines[i + 1][index]) - stoi(lines[i + 1][index]) * 0.3) {
+                    swap(lines[i], lines[i + 1]);
+                    swapped = true;
+                }
+            }
+            if (isLastMinTouri && index == 5 && !isLastMinTourii) {
+                if (cresing == 1 && stoi(lines[i][index]) - stoi(lines[i][index]) * 0.3 > stoi(lines[i + 1][index]) ||
+                    cresing == 2 && stoi(lines[i][index]) - stoi(lines[i][index]) * 0.3 < stoi(lines[i + 1][index])) {
+                    swap(lines[i], lines[i + 1]);
+                    swapped = true;
+                }
+            }
+
+            if (!isLastMinTouri && index == 5 && isLastMinTourii) {
+                if (cresing == 1 && stoi(lines[i][index]) > stoi(lines[i + 1][index]) - stoi(lines[i + 1][index]) * 0.3 ||
+                    cresing == 2 && stoi(lines[i][index]) < stoi(lines[i + 1][index]) - stoi(lines[i + 1][index]) * 0.3) {
+                    swap(lines[i], lines[i + 1]);
+                    swapped = true;
+                }
+            }
+
+            if (!isLastMinTouri && index == 5 && !isLastMinTourii) {
+                if (cresing == 1 && stoi(lines[i][index]) > stoi(lines[i + 1][index]) ||
+                    cresing == 2 && stoi(lines[i][index]) < stoi(lines[i + 1][index])) {
+                    swap(lines[i], lines[i + 1]);
+                    swapped = true;
+                }
+            }
+        }
+        ++start;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+*/
+
+
 void Findtours(wstring**& lines, int& lineCount, int choice) {
     system("cls");
     wifstream file("toursmain1.txt");
@@ -1192,13 +1333,19 @@ void Findtours(wstring**& lines, int& lineCount, int choice) {
         }
     }
 
+    for (int i = 0; i < lineCount; i++) {
+        isLastMinTour(i, lines, 0);
+    }
+
     file.close();
 }
 
-bool isLastMinTour(wstring stoedEndData) {
+bool isLastMinTour(int index, wstring**& lines, int role) {
     SYSTEMTIME t;
     GetLocalTime(&t);
-    int day1 = stoi(stoedEndData.substr(0, 2)), month1 = stoi(stoedEndData.substr(3, 2)), year1 = stoi(stoedEndData.substr(6, 4));
+    int day1 = stoi(lines[index][4].substr(0, 2)), 
+        month1 = stoi(lines[index][4].substr(3, 2)), 
+        year1 = stoi(lines[index][4].substr(6, 4));
     
     int day2 = t.wDay, month2 = t.wMonth, year2 = t.wYear;
 
@@ -1229,7 +1376,11 @@ bool isLastMinTour(wstring stoedEndData) {
     if (diffInDays < 0) {
         diffInDays *= -1;
     }
-    return (diffInDays<=5);
+
+    if (diffInDays <= 5 && role == 0) {// именение масссива 
+        lines[index][5] = (to_wstring(static_cast<int>(round(stod(lines[index][5]) - stod(lines[index][5]) * 0.3))));
+    } 
+    return (diffInDays <= 5);
 }
 
 void addFoundToursInArray(wstring**& lines, int& lineCount, const wstring& line) {
@@ -1398,29 +1549,30 @@ void deletingSaveToursAfterDeletingMainTour(wstring deletingtour) {
 void Deleting(const wstring& lineToDelete, const string filename) {
     wifstream fileIn(filename);
     fileIn.imbue(locale(fileIn.getloc(), new codecvt_utf8<wchar_t>));
-    if (!fileIn.is_open()) {
-        cerr << L"Ошибка открытия файла" << endl;
-        return;
-    }
-
     wstring line;
     wstring fileContent;
-    while (getline(fileIn, line)) {
-        if (line != lineToDelete) {
-            fileContent += line + L"\n";
-        }
+    if (!fileIn.is_open()) {
+        cerr << L"Ошибка открытия файла" << endl;
     }
-    fileIn.close();
+    else {
 
+        while (getline(fileIn, line)) {
+            if (line != lineToDelete) {
+                fileContent += line + L"\n";
+            }
+        }
+        fileIn.close();
+    }
     wofstream fileOut(filename);
     fileOut.imbue(locale(fileOut.getloc(), new codecvt_utf8<wchar_t>));
     if (!fileOut.is_open()) {
         cerr << L"Ошибка открытия файла для записи" << endl;
         return;
     }
-
-    fileOut << fileContent;
-    fileOut.close();
+    else {
+        fileOut << fileContent;
+        fileOut.close();
+    }
 }
 
 void changeAccountData(const string filename, const string userlogin, const string userpassword, int field, User& currentUser) {// field = 1 изменение логина field = 2 изменение пароля 
@@ -1477,7 +1629,7 @@ void changeAccountData(const string filename, const string userlogin, const stri
                 }
                 else {
                     printCentered("Пароли отличаются. Попробуйте еще раз.", 1, 0, 0);
-                    Sleep(2000);
+                    Sleep(1000);
                 }
             }
         }
@@ -1619,7 +1771,7 @@ wstring getFieldsOfNewTour() {
                 }
                 break;
             case 4:
-                printCentered("Введите дату первого отправления в формате дд.мм.гггг: ", 1, 0, 0); //проверять чтоб были тольлко цифры
+                printCentered("Введите дату первого отправления в формате дд.мм.гггг: ", 1, 0, 0); 
                 getline(wcin, data);
                 while (true) {
                     start = data;
