@@ -655,7 +655,7 @@ void showUsersSavedTours(int& x, int& y, string filename) {
         printCentered("У пользователя " + username + " нет сохраненных туров", 1, 0, 0);
     }
     else {
-        printCentered("СОХРАНЕННЫЕ ТУРЫ ПОЛЬЗОВАТЕЛЯ " + username + skip, count + 1, 0, 0);
+        printCentered("СОХРАНЕННЫЕ ТУРЫ ПОЛЬЗОВАТЕЛЯ " + username + skip, count + 2, 0, 0);
         CONSOLE_SCREEN_BUFFER_INFO csbi;
         GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
         int consoleWidth = csbi.srWindow.Right - csbi.srWindow.Left + 1;
@@ -1406,7 +1406,7 @@ void addFoundToursInArray(wstring**& lines, int& lineCount, const wstring& line)
 void FindToDeletIrrelevant() {
     wifstream file("toursmain1.txt");
     file.imbue(locale(file.getloc(), new codecvt_utf8<wchar_t>));
-    printCentered("Введите сегодняшнюю дату (в формате дд-мм-гггг): ", 1, 0, 0);
+    printCentered("Введите желаемую дату (в формате дд-мм-гггг): ", 1, 0, 0);
     wstring today, line, storedEndDate;
     wcin >> today;
     today = today.substr(6, 4) + today.substr(3, 2) + today.substr(0, 2);
@@ -1425,7 +1425,7 @@ void FindToDeletIrrelevant() {
             }
     }
     if (count == 0) {
-        printCentered("Нет неактуальных", 1, 0, 0);
+        printCentered("Нет неактуальных туров", 1, 0, 0);
     }
     else {
         printCentered("Успешно удалено " + to_string(count) + " туров", 1, 0, 0);
@@ -1801,7 +1801,7 @@ wstring getFieldsOfNewTour() {
                         getline(wcin, data);
                     }                    
                     else if (stoi(data.substr(0, 2)) <= 0 && stoi(data.substr(3, 2)) <= 0 && stoi(data.substr(6, 4)) <= 0) {
-                        printCentered("Дата последнего отправления введена неверно.\nВведите заново: ", 2, 0, 0);
+                        printCentered("Дата первого отправления введена неверно.\nВведите заново: ", 2, 0, 0);
                         getline(wcin, data);
                     }
                     else {
@@ -1810,7 +1810,7 @@ wstring getFieldsOfNewTour() {
                 }
                 break;
             case 5:
-                printCentered("Введите дату последнего отправления: ", 1, 0, 0);
+                printCentered("Введите дату последнего отправления в формате дд.мм.гггг: ", 1, 0, 0);
                 getline(wcin, data);
                 while (true) {                   
                     for (char c : data.substr(0,2)) {
@@ -1905,7 +1905,7 @@ wstring getFieldsOfNewTour() {
                 while (true) {
                     for (char c : data) {
                         if (!isdigit(c)) {
-                            printCentered("Цена не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
+                            printCentered("Рейтинг отеля не может содержать буквы или символы.\nВведите заново: ", 2, 0, 0);
                             getline(wcin, data);
                             break;
                         }
@@ -1913,6 +1913,9 @@ wstring getFieldsOfNewTour() {
                     if (stoi(data) <= 0 || stoi(data) > 5) {
                         printCentered("Рейтинг отеля введен неверно.\nВведите заново: ", 2, 0, 0);
                         getline(wcin, data);
+                    }
+                    else {
+                        break;
                     }
                 }
                 break;
